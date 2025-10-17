@@ -20,125 +20,302 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
         }
         
         header {
             text-align: center;
             color: white;
-            margin-bottom: 40px;
-            padding: 40px 20px;
+            margin-bottom: 50px;
+            padding: 50px 20px 30px;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: clamp(2em, 5vw, 3em);
+            margin-bottom: 15px;
             font-weight: 700;
+            letter-spacing: -0.5px;
         }
         
         header p {
-            font-size: 1.2em;
+            font-size: clamp(1em, 2.5vw, 1.3em);
             opacity: 0.95;
             font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .projects-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+            animation: fadeInUp 0.8s ease 0.2s backwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .card {
             background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover::before {
+            transform: scaleX(1);
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+        
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: inline-block;
+            animation: bounce 2s ease infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
         
         .card h2 {
-            color: #667eea;
-            font-size: 1.5em;
+            color: #2d3748;
+            font-size: 1.8em;
             margin-bottom: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .card p {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            color: #4a5568;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            font-size: 1.05em;
         }
         
-        .card .tech-tags {
+        .tech-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 25px;
         }
         
-        .card .tech-tags span {
-            background: #f0f0f0;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.85em;
-            color: #555;
+        .tech-tags span {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid #667eea30;
+            transition: all 0.3s ease;
+        }
+        
+        .tech-tags span:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
         
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 30px;
-            border-radius: 25px;
+            padding: 15px 35px;
+            border-radius: 30px;
             text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: 700;
+            font-size: 1.05em;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
         }
         
         .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .btn-text {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .arrow {
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn:hover .arrow {
+            transform: translateX(5px);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 15px;
         }
         
         footer {
             text-align: center;
             color: white;
-            padding: 30px;
-            margin-top: 40px;
+            padding: 40px 20px;
+            margin-top: 50px;
+            animation: fadeIn 1s ease 0.4s backwards;
         }
         
-        footer p {
-            margin: 5px 0;
-            opacity: 0.9;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        footer .name {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        footer .title {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            opacity: 0.95;
+        }
+        
+        footer .contact {
+            margin: 15px 0;
         }
         
         footer a {
             color: white;
             text-decoration: none;
-            border-bottom: 1px solid rgba(255,255,255,0.5);
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            transition: border-color 0.3s ease;
+            font-weight: 500;
         }
         
         footer a:hover {
             border-bottom-color: white;
         }
         
-        @media (max-width: 600px) {
-            header h1 {
-                font-size: 2em;
+        footer .disclaimer {
+            opacity: 0.8;
+            font-size: 0.95em;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
             }
             
-            header p {
-                font-size: 1em;
+            header {
+                padding: 30px 15px 20px;
+                margin-bottom: 30px;
             }
             
             .card {
+                padding: 25px;
+            }
+            
+            .card h2 {
+                font-size: 1.5em;
+            }
+            
+            .btn {
+                padding: 13px 28px;
+                font-size: 1em;
+            }
+            
+            .projects-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .card {
                 padding: 20px;
+            }
+            
+            .tech-tags span {
+                font-size: 0.85em;
+                padding: 6px 12px;
             }
         }
     </style>
@@ -146,42 +323,57 @@
 <body>
     <div class="container">
         <header>
-            <h1>Automation Demo Hub</h1>
+            <h1>🚀 Automation Demo Hub</h1>
             <p>Tiny, useful automations that remove daily busywork</p>
         </header>
         
         <div class="projects-grid">
             <!-- Project 1: Daily Status Bot -->
             <div class="card">
-                <h2>📊 Daily Status Bot</h2>
+                <span class="status-badge">✨ Live Demo</span>
+                <div class="card-icon">📊</div>
+                <h2>Daily Status Bot</h2>
                 <p>Automated daily summary generator that pulls real-time data and sends formatted reports. Built with Google Apps Script and integrated with Gmail.</p>
                 <div class="tech-tags">
                     <span>Apps Script</span>
                     <span>Gmail API</span>
                     <span>Automation</span>
                 </div>
-                <a href="https://script.google.com/macros/s/AKfycbz7bXI9aA7WfoRYNz-nJFPFJ5v7r8KrebHHNkeZLkiM3rcT1n4gtTFFqIbltzcKc2Fo/exec" class="btn" target="_blank">View Live Demo →</a>
+                <a href="https://script.google.com/macros/s/AKfycbz7bXI9aA7WfoRYNz-nJFPFJ5v7r8KrebHHNkeZLkiM3rcT1n4gtTFFqIbltzcKc2Fo/exec" class="btn" target="_blank">
+                    <span class="btn-text">View Live Demo</span>
+                    <span class="arrow">→</span>
+                </a>
             </div>
             
-            <!-- Template for future projects - just copy this block and edit -->
+            <!-- Template for future projects -->
             <!-- 
             <div class="card">
-                <h2>🎯 Project Name</h2>
-                <p>Brief description of what this automation does and the problem it solves.</p>
+                <span class="status-badge">✨ Live Demo</span>
+                <div class="card-icon">🎯</div>
+                <h2>Project Name</h2>
+                <p>Brief description of what this automation does and the problem it solves. Keep it concise and compelling.</p>
                 <div class="tech-tags">
                     <span>Technology 1</span>
                     <span>Technology 2</span>
+                    <span>Technology 3</span>
                 </div>
-                <a href="YOUR_PROJECT_URL_HERE" class="btn" target="_blank">View Live Demo →</a>
+                <a href="YOUR_PROJECT_URL_HERE" class="btn" target="_blank">
+                    <span class="btn-text">View Live Demo</span>
+                    <span class="arrow">→</span>
+                </a>
             </div>
             -->
         </div>
         
         <footer>
-            <p><strong>Akash Kunwar</strong></p>
-            <p>Automation Engineer | Building tools that save time</p>
-            <p>Contact: <a href="mailto:akashkunwar012@gmail.com">akashkunwar012@gmail.com</a></p>
-            <p style="opacity: 0.7; font-size: 0.9em; margin-top: 15px;">Demo only • No private data collected</p>
+            <div class="name">Akash Kunwar</div>
+            <div class="title">Automation Engineer | Building tools that save time</div>
+            <div class="contact">
+                Contact: <a href="mailto:akashkunwar012@gmail.com">akashkunwar012@gmail.com</a>
+            </div>
+            <div class="disclaimer">
+                Demo only • No private data collected • Built with ❤️ for efficiency
+            </div>
         </footer>
     </div>
 </body>
