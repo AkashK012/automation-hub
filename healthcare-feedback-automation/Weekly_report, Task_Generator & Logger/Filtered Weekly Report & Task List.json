@@ -1,0 +1,1038 @@
+{
+  "name": "Weekly Report & Task List",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        752
+      ],
+      "id": "afd00e6d-264c-41df-b359-e7d15416bf50",
+      "name": "Weekly Report Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const processedData = $input.first().json.processedData;\nreturn [\n    { json: { type: 'client_reports', processedData: processedData } },\n    { json: { type: 'staff_reports', processedData: processedData } },  \n    { json: { type: 'ai_tasks', processedData: processedData } },\n    { json: { type: 'missing_forms', processedData: processedData } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        688
+      ],
+      "id": "366bb80b-61f3-4c07-939e-08cf303ce7d3",
+      "name": "Report Splitter",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.pdfRequestBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        352
+      ],
+      "id": "03ac59ea-ed87-4966-b850-ec9acff41588",
+      "name": "Generate Client PDF",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.pdfRequestBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        688
+      ],
+      "id": "1e28ef0d-f922-4052-a9f8-73d21228646d",
+      "name": "Generate Staff PDF",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// CLIENT FOLDER ROUTER CODE \n// Routes client reports to correct client folder based on client code\n\nconst clientCode = $json.clientCode;\nconst clientName = $json.clientName;\n\nconsole.log(`Routing client report for: ${clientCode} - ${clientName}`);\n\n// YOUR ACTUAL GOOGLE DRIVE FOLDER IDs\nconst clientFolderMap = {\n    'CT001': 'folder_id',      //test_client\n    'CT999': 'folder_id'    // Fallback folder\n};\n\n// Get the target folder ID for this client\nconst targetFolderId = clientFolderMap[clientCode] || clientFolderMap['CT999'];\n\nif (!clientFolderMap[clientCode]) {\n    console.warn(`⚠️ No specific folder mapping found for ${clientCode} - using fallback folder`);\n}\n\nconsole.log(`Routing to folder ID: ${targetFolderId}`);\n\n// CRITICAL FIX: Return single item, not wrapped in array\nreturn {\n    json: {\n        ...($json),\n        targetFolderId: targetFolderId\n    },\n    binary: $input.item.binary\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        352
+      ],
+      "id": "623913c6-7c2a-4464-82bc-b18b1d193eb2",
+      "name": "Client Folder Router",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// STAFF FOLDER ROUTER CODE  \n// For \"Staff Folder Router\" node\n// Routes staff reports to correct staff folder based on staff code\n\n\nconst staffCode = $json.staffCode;\nconst staffName = $json.staffName;\n\nconsole.log(`Routing staff report for: ${staffCode} - ${staffName}`);\n\n// YOUR ACTUAL GOOGLE DRIVE FOLDER IDs for Staff\n// Replace these with your real folder IDs from Google Drive URLs\nconst staffFolderMap = {\n    // Staff folder IDs (get from Google Drive folder URLs)\n    'STF001': 'folder_id',        // test_staff\n    \n    // Add more staff folder IDs as needed\n    'STF999': 'folder_id'         // Fallback folder\n};\n\n// Get the target folder ID for this staff member\nconst targetFolderId = staffFolderMap[staffCode] || staffFolderMap['STF999'];\n\nif (!staffFolderMap[staffCode]) {\n    console.warn(`⚠️ No specific folder mapping found for ${staffCode} - using fallback folder`);\n}\n\nconsole.log(`Routing to folder ID: ${targetFolderId}`);\n\nreturn {\n    json: {\n        ...($json),\n        targetFolderId: targetFolderId\n    },\n    binary: $input.item.binary\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        688
+      ],
+      "id": "b9da14ca-4fe2-4345-b55f-c883ed635735",
+      "name": "Staff Folder Router",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "pdf",
+        "name": "={{ $json.title }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "value": "=My Drive",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.targetFolderId }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2912,
+        352
+      ],
+      "id": "10443b5c-bb78-4d21-83c5-78da542b4cde",
+      "name": "Save Client Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "pdf",
+        "name": "={{ $json.title }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "value": "=My Drive",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.targetFolderId }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2912,
+        688
+      ],
+      "id": "3a59e127-30d6-420d-a447-935e2edf8c85",
+      "name": "Save Staff Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2336,
+        1056
+      ],
+      "id": "d4e74389-7d6e-4a8b-b16c-8c46ba04ba20",
+      "name": "Store Tasks",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        1744
+      ],
+      "id": "c4e84239-efe7-4f1a-8174-0f7c974cec0d",
+      "name": "Schedule Trigger4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// DAILY HEALTHCARE DATA PROCESSOR\n// Mode: Run Once for All Items\n// Purpose: Process last 24 hours of form data for urgent task generation\n\nconsole.log('=== DAILY HEALTHCARE DATA PROCESSOR ===');\n\n// Get form data from Google Sheets Reader\nconst allFormResponses = $input.all();\n\nif (!allFormResponses || allFormResponses.length === 0) {\n    console.log('No form responses found for daily processing');\n    return [{\n        json: {\n            type: 'ai_tasks',\n            processedData: {\n                reportPeriod: {\n                    startDate: new Date(Date.now() - 24*60*60*1000).toLocaleDateString(),\n                    endDate: new Date().toLocaleDateString(),\n                    generatedOn: new Date().toLocaleString(),\n                    dataScope: 'daily'\n                },\n                clientWeeklyData: {},\n                staffWeeklyData: {},\n                aiAnalysisData: { overallTrends: { totalShifts: 0 } }\n            }\n        }\n    }];\n}\n\n// Calculate 24-hour window (yesterday 6 AM to today 6 AM)\nconst now = new Date();\nconst yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));\n\nconsole.log(`Processing data from ${yesterday.toLocaleDateString()} 06:00 to ${now.toLocaleDateString()} 06:00`);\n\n// Filter to last 24 hours\nconst dailyResponses = [];\n\nallFormResponses.forEach(item => {\n    const response = item.json;\n    const timestamp = response['Timestamp'];\n    \n    if (timestamp) {\n        const responseDate = new Date(timestamp);\n        if (responseDate >= yesterday && responseDate <= now) {\n            dailyResponses.push(response);\n        }\n    }\n});\n\nconsole.log(`Found ${dailyResponses.length} form responses from last 24 hours`);\n\nif (dailyResponses.length === 0) {\n    console.log('No recent form responses - returning empty structure');\n    return [{\n        json: {\n            type: 'ai_tasks',\n            processedData: {\n                reportPeriod: {\n                    startDate: yesterday.toLocaleDateString(),\n                    endDate: now.toLocaleDateString(),\n                    generatedOn: new Date().toLocaleString(),\n                    dataScope: 'daily'\n                },\n                clientWeeklyData: {},\n                staffWeeklyData: {},\n                aiAnalysisData: { overallTrends: { totalShifts: 0 } }\n            }\n        }\n    }];\n}\n\n// Helper functions\nfunction cleanData(value, defaultValue = 'Not specified') {\n    if (!value || value.toString().trim() === '' || \n        value.toString().toLowerCase().includes('not recorded') ||\n        value.toString().toLowerCase().includes('not specified') ||\n        value.toString().toLowerCase().includes('none')) {\n        return defaultValue;\n    }\n    return value.toString().trim();\n}\n\nfunction extractClientCode(clientName) {\n    if (!clientName) return 'CT999';\n    \n    const codeMatch = clientName.match(/CT\\\\d+/);\n    if (codeMatch) return codeMatch[0];\n    \n    const nameMapping = {\n        'john smith': 'CT001',\n        'sarah johnson': 'CT002',\n        'james lee': 'CT003',\n        'amanda brown': 'CT004',\n        'david wilson': 'CT005',\n        'emily davis': 'CT006',\n        'robert miller': 'CT007',\n        'olivia garcia': 'CT008',\n        'william martinez': 'CT009',\n        'sophia anderson': 'CT010'\n    };\n    \n    const cleanName = clientName.toLowerCase().trim();\n    return nameMapping[cleanName] || 'CT999';\n}\n\nfunction extractStaffCode(staffName) {\n    if (!staffName) return 'STF999';\n    \n    const codeMatch = staffName.match(/STF\\\\d+/);\n    if (codeMatch) return codeMatch[0];\n    \n    const nameMapping = {\n        'edward todd': 'STF001',\n        'yvette fritz': 'STF002',\n        'vernon benson': 'STF003',\n        'anita davis': 'STF004',\n        'matthew deleon': 'STF005',\n        'karina perez': 'STF006',\n        'dominique lawrence': 'STF007',\n        'jason franklin': 'STF008',\n        'karen kelly': 'STF009',\n        'ashley faulkner': 'STF010'\n    };\n    \n    const cleanName = staffName.toLowerCase().trim();\n    return nameMapping[cleanName] || 'STF999';\n}\n\n// Initialize daily data structure\nconst processedData = {\n    reportPeriod: {\n        startDate: yesterday.toLocaleDateString(),\n        endDate: now.toLocaleDateString(),\n        generatedOn: new Date().toLocaleString(),\n        dataScope: 'daily'\n    },\n    clientWeeklyData: {},\n    staffWeeklyData: {},\n    aiAnalysisData: {\n        overallTrends: {\n            totalShifts: 0,\n            totalIncidents: 0,\n            medicationIssues: 0,\n            nutritionConcerns: 0,\n            trainingNeeds: 0,\n            staffConcerns: 0,\n            swallowingDifficulties: 0,\n            chokingConcerns: 0\n        }\n    }\n};\n\n// Process daily responses\ndailyResponses.forEach(response => {\n    const clientName = cleanData(response['Participant Full Name']);\n    const staffName = cleanData(response['Staff Full Name']);\n    const clientCode = extractClientCode(clientName);\n    const staffCode = extractStaffCode(staffName);\n    \n    // Initialize client data if not exists\n    if (!processedData.clientWeeklyData[clientCode]) {\n        processedData.clientWeeklyData[clientCode] = {\n            clientCode: clientCode,\n            clientName: clientName,\n            totalShifts: 0,\n            shiftDetails: [],\n            medicationCompliance: {\n                totalAdministrations: 0,\n                issues: [],\n                prnUsage: [],\n                complianceRate: 100\n            },\n            nutritionMetrics: {\n                adequateIntakeCount: 0,\n                inadequateIntakeCount: 0,\n                concerns: [],\n                complianceRate: 100\n            },\n            swallowingAndSafety: {\n                swallowingDifficulties: [],\n                chokingIncidents: []\n            },\n            incidentSummary: {\n                totalIncidents: 0,\n                incidentDetails: []\n            },\n            behavioralObservations: {\n                healthConcerns: []\n            }\n        };\n    }\n    \n    // Initialize staff data if not exists\n    if (!processedData.staffWeeklyData[staffCode]) {\n        processedData.staffWeeklyData[staffCode] = {\n            staffCode: staffCode,\n            staffName: staffName,\n            totalShifts: 0,\n            clientsWorkedWith: new Set(),\n            professionalDevelopment: {\n                trainingNeeds: []\n            },\n            wellbeingAndSupport: {\n                concernsRaised: []\n            }\n        };\n    }\n    \n    // Process shift data\n    processShiftData(response, clientCode, staffCode);\n    \n    // Update counters\n    processedData.clientWeeklyData[clientCode].totalShifts++;\n    processedData.staffWeeklyData[staffCode].totalShifts++;\n    processedData.staffWeeklyData[staffCode].clientsWorkedWith.add(clientName);\n    processedData.aiAnalysisData.overallTrends.totalShifts++;\n});\n\nfunction processShiftData(response, clientCode, staffCode) {\n    const clientData = processedData.clientWeeklyData[clientCode];\n    const staffData = processedData.staffWeeklyData[staffCode];\n    \n    // Store shift details\n    clientData.shiftDetails.push({\n        timestamp: response['Timestamp'],\n        staffMember: response['Staff Full Name'],\n        location: response['Shift Location']\n    });\n    \n    // Process medication data\n    const medsGiven = response['Were any medications administered during this shift?'];\n    if (medsGiven && medsGiven.toLowerCase().includes('yes')) {\n        clientData.medicationCompliance.totalAdministrations++;\n        \n        const medIssues = response['Any issues or observations during administration?'];\n        if (medIssues && !medIssues.toLowerCase().includes('no issues') && !medIssues.toLowerCase().includes('none')) {\n            clientData.medicationCompliance.issues.push({\n                issue: medIssues,\n                medications: response['list all medications administered (if applicable)'],\n                time: response['Medication time'],\n                date: response['Timestamp']\n            });\n            processedData.aiAnalysisData.overallTrends.medicationIssues++;\n        }\n    }\n    \n    // Process PRN medications\n    for (let i = 1; i <= 3; i++) {\n        const prnName = response[`PRN${i} Medication name`];\n        if (prnName) {\n            clientData.medicationCompliance.prnUsage.push({\n                medication: prnName,\n                dose: response[`PRN${i} Dose`],\n                timeGiven: response[`PRN${i} Time given`],\n                reason: response[`PRN${i} Reason for administration`],\n                date: response['Timestamp']\n            });\n        }\n    }\n    \n    // Process nutrition data\n    const adequateIntake = response['Did the participant consume adequate food or fluids?'];\n    if (adequateIntake) {\n        if (adequateIntake.toLowerCase().includes('yes')) {\n            clientData.nutritionMetrics.adequateIntakeCount++;\n        } else if (adequateIntake.toLowerCase().includes('no')) {\n            clientData.nutritionMetrics.inadequateIntakeCount++;\n            const reason = response['If the participant did not consume adequate food or fluids, give the reason for why and what action was taken by staff?'];\n            if (reason) {\n                clientData.nutritionMetrics.concerns.push({\n                    reason: reason,\n                    date: response['Timestamp']\n                });\n            }\n            processedData.aiAnalysisData.overallTrends.nutritionConcerns++;\n        }\n    }\n    \n    // Process swallowing data\n    const swallowingDifficulty = response['Did the participant have any difficulty chewing or swallowing during meals or with fluids?'];\n    if (swallowingDifficulty && swallowingDifficulty.toLowerCase().includes('yes')) {\n        const explanation = response['Explain the difficulty in chewing or swallowing experienced during meals and with fluids, and what actions were taken by staff.'];\n        clientData.swallowingAndSafety.swallowingDifficulties.push({\n            description: explanation,\n            date: response['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.swallowingDifficulties++;\n    }\n    \n    const chokingConcerns = response['Were there any signs of choking, coughing, or discomfort while eating or drinking?'];\n    if (chokingConcerns && chokingConcerns.toLowerCase().includes('yes')) {\n        const chokingDetails = response['Were there any signs of choking, coughing, or discomfort while eating or drinking? If yes, explain the possible cause and describe the actions taken by staff.'];\n        clientData.swallowingAndSafety.chokingIncidents.push({\n            description: chokingDetails,\n            date: response['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.chokingConcerns++;\n    }\n    \n    // Process incident data\n    const incidentOccurred = response['Did any incidents occur during this shift?'];\n    const hasIncidentData = response['Incident Date and Time'] || response['Location of Incident'];\n    \n    if ((incidentOccurred && incidentOccurred.toLowerCase().includes('yes')) || hasIncidentData) {\n        const incidentData = {\n            dateTime: response['Incident Date and Time'],\n            location: response['Location of Incident'],\n            description: response['Describe What Happened'],\n            actionsTaken: response['Actions Taken / Response'],\n            shiftDate: response['Timestamp']\n        };\n        \n        clientData.incidentSummary.totalIncidents++;\n        clientData.incidentSummary.incidentDetails.push(incidentData);\n        processedData.aiAnalysisData.overallTrends.totalIncidents++;\n    }\n    \n    // Process staff concerns\n   const staffConcerns = response[\"Did you experience any concerns or issues during your shift that you'd like to report?\"];\n    if (staffConcerns && staffConcerns.toLowerCase().includes('yes')) {\n        const concernDetails = response['Would you like to provide more details about any concerns, issues, or complaints raised during this shift? If yes, please describe what happened and any actions taken.'];\n        \n        staffData.wellbeingAndSupport.concernsRaised.push({\n            type: 'general_concern',\n            details: concernDetails,\n            date: response['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.staffConcerns++;\n    }\n    \n    // Process training needs\n    const trainingNeeds = response['Do you feel you need additional training or support?'];\n    if (trainingNeeds && trainingNeeds.toLowerCase().includes('yes')) {\n        const trainingAreas = response['Which areas do you feel you need training in?'];\n        const supportType = response['What type of support would help you most?'];\n        \n        staffData.professionalDevelopment.trainingNeeds.push({\n            areas: trainingAreas,\n            supportType: supportType,\n            date: response['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.trainingNeeds++;\n    }\n}\n\n// Calculate compliance rates\nObject.values(processedData.clientWeeklyData).forEach(client => {\n    if (client.medicationCompliance.totalAdministrations > 0) {\n        client.medicationCompliance.complianceRate = Math.round(\n            ((client.medicationCompliance.totalAdministrations - client.medicationCompliance.issues.length) / \n             client.medicationCompliance.totalAdministrations) * 100\n        );\n    }\n    \n    const totalNutritionAssessments = client.nutritionMetrics.adequateIntakeCount + client.nutritionMetrics.inadequateIntakeCount;\n    if (totalNutritionAssessments > 0) {\n        client.nutritionMetrics.complianceRate = Math.round(\n            (client.nutritionMetrics.adequateIntakeCount / totalNutritionAssessments) * 100\n        );\n    }\n});\n\n// Convert Sets to Arrays\nObject.values(processedData.staffWeeklyData).forEach(staff => {\n    staff.clientsWorkedWith = Array.from(staff.clientsWorkedWith);\n});\n\nconsole.log(`=== DAILY PROCESSING COMPLETE ===`);\nconsole.log(`Processed ${processedData.aiAnalysisData.overallTrends.totalShifts} shifts from last 24 hours`);\nconsole.log(`Clients with data: ${Object.keys(processedData.clientWeeklyData).length}`);\nconsole.log(`Staff with data: ${Object.keys(processedData.staffWeeklyData).length}`);\n\nreturn [{\n    json: {\n        type: 'ai_tasks',\n        processedData: processedData\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        1744
+      ],
+      "id": "9bef6b06-4fc8-4057-8248-d7a1db65597a",
+      "name": "Daily Data Processor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// COMPLETE DAILY TASK GENERATOR WITH DUPLICATE PREVENTION\n// Production-ready with built-in duplicate handling\n// Integrates with your healthcare automation workflow\n\nconsole.log('=== PROFESSIONAL DAILY TASK GENERATOR ===');\n\n// Get the processed data input\nconst processedData = $json.processedData;\nif (!processedData) {\n    console.log('No processed data found');\n    return [];\n}\n\nconst dailyTasks = [];\nlet taskSequence = 0;\nlet groupSequence = 0;\n\n// SYSTEM CONFIGURATION\nconst SYSTEM_CONFIG = {\n    facilityCode: 'HC',\n    reportPeriod: processedData.reportPeriod?.startDate || new Date().toLocaleDateString(),\n    version: '5.0-Professional-Daily'\n};\n\n// DUPLICATE PREVENTION SYSTEM\nconst recentTasks = new Map(); // Track recent tasks to prevent duplicates\n\n// PROFESSIONAL DAILY TASK RULES\nconst DAILY_TASK_RULES = {\n    immediate: {\n        incident: {\n            priority: 'P1-IMMEDIATE',\n            category: 'Safety Response',\n            assignedRole: 'Healthcare Manager',\n            department: 'Clinical Operations',\n            dueDays: 0,\n            urgencyLevel: 'Immediate Action Required',\n            escalationDays: 1,\n            escalationTo: 'Clinical Director',\n            complianceCategory: 'Safety Management'\n        },\n        medication: {\n            priority: 'P1-IMMEDIATE',\n            category: 'Medication Safety',\n            assignedRole: 'Nursing Supervisor',\n            department: 'Clinical Operations',\n            dueDays: 0,\n            urgencyLevel: 'Immediate Review Required',\n            escalationDays: 1,\n            escalationTo: 'Healthcare Manager',\n            complianceCategory: 'Medication Management'\n        },\n        swallowing: {\n            priority: 'P1-IMMEDIATE',\n            category: 'Swallowing Safety',\n            assignedRole: 'Speech Pathologist',\n            department: 'Clinical Operations',\n            dueDays: 1,\n            urgencyLevel: 'Next Day Assessment',\n            escalationDays: 2,\n            escalationTo: 'Healthcare Manager',\n            complianceCategory: 'Swallowing Safety'\n        }\n    },\n    urgent: {\n        nutrition: {\n            priority: 'P2-URGENT',\n            category: 'Nutrition Support',\n            assignedRole: 'Dietitian',\n            department: 'Clinical Operations',\n            dueDays: 1,\n            urgencyLevel: 'Within 24 Hours',\n            escalationDays: 2,\n            escalationTo: 'Nursing Supervisor',\n            complianceCategory: 'Nutrition Management'\n        },\n        staff_concern: {\n            priority: 'P2-URGENT',\n            category: 'Staff Wellbeing',\n            assignedRole: 'HR Manager',\n            department: 'Human Resources',\n            dueDays: 1,\n            urgencyLevel: 'Within 24 Hours',\n            escalationDays: 2,\n            escalationTo: 'Operations Manager',\n            complianceCategory: 'Staff Support'\n        },\n        community: {\n            priority: 'P3-DAILY',\n            category: 'Community Engagement',\n            assignedRole: 'Activities Coordinator',\n            department: 'Client Services',\n            dueDays: 2,\n            urgencyLevel: 'Within 48 Hours',\n            escalationDays: 3,\n            escalationTo: 'Healthcare Manager',\n            complianceCategory: 'Community Participation'\n        }\n    }\n};\n\n// HELPER FUNCTIONS\nfunction formatDateTime(isoString, format = 'full') {\n    if (!isoString) return '';\n    \n    try {\n        const date = new Date(isoString);\n        const options = {\n            timeZone: 'Australia/Sydney',\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit'\n        };\n        \n        if (format === 'full') {\n            options.hour = '2-digit';\n            options.minute = '2-digit';\n            options.hour12 = false;\n        }\n        \n        return date.toLocaleString('en-AU', options);\n    } catch (error) {\n        return new Date().toLocaleDateString('en-AU');\n    }\n}\n\nfunction generateTaskGroupId() {\n    groupSequence++;\n    const timestamp = Date.now().toString().slice(-6);\n    return `${SYSTEM_CONFIG.facilityCode}-GRP-D${timestamp}-${groupSequence.toString().padStart(3, '0')}`;\n}\n\nfunction generateDailyTaskId(taskType, priority, entityCode) {\n    taskSequence++;\n    const timestamp = Date.now().toString().slice(-6);\n    const typeCode = taskType.substring(0, 3).toUpperCase();\n    const priorityNum = priority.includes('P1') ? '1' : priority.includes('P2') ? '2' : '3';\n    const sequenceId = taskSequence.toString().padStart(4, '0');\n    \n    return `${SYSTEM_CONFIG.facilityCode}-D${typeCode}${priorityNum}-${entityCode}-${timestamp}${sequenceId}`;\n}\n\nfunction calculateFollowUpDates(rule, createdDate) {\n    const created = new Date(createdDate);\n    const dueDate = new Date(created);\n    const escalationDate = new Date(created);\n    \n    dueDate.setDate(dueDate.getDate() + rule.dueDays);\n    escalationDate.setDate(escalationDate.getDate() + rule.escalationDays);\n    \n    return { dueDate, escalationDate };\n}\n\n// DUPLICATE PREVENTION FUNCTIONS\nfunction checkForExistingTask(clientCode, staffCode, taskType) {\n    const taskKey = `${clientCode || staffCode || 'UNKNOWN'}-${taskType}`;\n    \n    if (recentTasks.has(taskKey)) {\n        console.log(`⚠️ Duplicate detected: ${taskKey} - Task already exists`);\n        return true;\n    }\n    \n    recentTasks.set(taskKey, Date.now());\n    return false;\n}\n\nfunction shouldCreateDailyTask(taskType, priority) {\n    // P1-IMMEDIATE tasks always override weekly tasks (safety priority)\n    const immediateTypes = ['incident', 'medication', 'swallowing'];\n    \n    if (immediateTypes.includes(taskType) && priority.includes('P1')) {\n        console.log(`✓ Creating P1-IMMEDIATE task for safety: ${taskType}`);\n        return true;\n    }\n    \n    // P2-URGENT tasks create if unique (no recent duplicate)\n    if (priority.includes('P2')) {\n        console.log(`✓ Creating P2-URGENT task: ${taskType}`);\n        return true;\n    }\n    \n    // P3-DAILY tasks only if no weekly equivalent\n    console.log(`? P3-DAILY task evaluation: ${taskType}`);\n    return true;\n}\n\n// ENHANCED TASK CREATION WITH DUPLICATE PREVENTION\nfunction createDailyTaskWithPrevention(taskData, rule, groupId = null) {\n    // Check for duplicates\n    const isDuplicate = checkForExistingTask(\n        taskData.clientCode, \n        taskData.staffCode, \n        taskData.type\n    );\n    \n    if (isDuplicate && !shouldCreateDailyTask(taskData.type, rule.priority)) {\n        console.log(`⏭️ Skipping duplicate task: ${taskData.type} for ${taskData.clientCode || taskData.staffCode}`);\n        return null;\n    }\n    \n    const currentTime = new Date();\n    const followUpDates = calculateFollowUpDates(rule, currentTime);\n    const taskId = generateDailyTaskId(taskData.type, rule.priority, taskData.entityCode);\n    \n    const task = {\n        TaskID: taskId,\n        CreatedDate: formatDateTime(currentTime.toISOString()),\n        Title: taskData.title,\n        Priority: rule.priority,\n        Urgency: rule.urgencyLevel,\n        Category: rule.category,\n        Status: 'Open',\n        AssignedRole: rule.assignedRole,\n        Department: rule.department,\n        AssignedTo: taskData.assignedTo || '',\n        DueDate: formatDateTime(followUpDates.dueDate.toISOString(), 'date'),\n        EscalationDate: formatDateTime(followUpDates.escalationDate.toISOString(), 'date'),\n        EscalationTo: rule.escalationTo,\n        FollowUpStatus: 'On Track',\n        \n        // SINGLE ENTITY IDs (Professional Architecture)\n        ClientCode: taskData.clientCode || '',\n        StaffCode: taskData.staffCode || '',\n        \n        Description: taskData.description,\n        ComplianceCategory: rule.complianceCategory,\n        PatternType: taskData.patternType || 'daily_issue',\n        AffectedCount: 1,\n        TrendDirection: taskData.trendDirection || 'immediate',\n        \n        // GROUP LINKING AND RELATIONSHIP TRACKING\n        TaskGroupID: groupId || '',\n        GroupCategory: taskData.groupCategory || '',\n        RelatedTaskCount: taskData.relatedTaskCount || 1,\n        \n        // DUPLICATE PREVENTION METADATA\n        RelatedWeeklyTask: isDuplicate ? 'YES' : 'NO',\n        TaskRelationship: isDuplicate ? 'DAILY_ESCALATION' : 'STANDALONE',\n        TaskPriority: rule.priority,\n        \n        CompletedDate: '',\n        CompletedBy: '',\n        ResolutionSummary: '',\n        FollowUpNotes: '',\n        EscalationCount: 0,\n        LastFollowUp: '',\n        SourceReport: `Daily Healthcare Analysis - ${SYSTEM_CONFIG.reportPeriod}`,\n        CreatedBy: `Professional Analytics v${SYSTEM_CONFIG.version}`,\n        FacilityCode: SYSTEM_CONFIG.facilityCode,\n        DataScope: 'daily',\n        LastUpdated: formatDateTime(currentTime.toISOString())\n    };\n    \n    if (isDuplicate) {\n        console.log(`⚡ Created escalation task: ${taskId} (overrides weekly due to priority)`);\n    } else {\n        console.log(`✓ Created standalone daily task: ${taskId}`);\n    }\n    \n    return task;\n}\n\n// 1. IMMEDIATE INCIDENT TASKS\nif (processedData.clientWeeklyData) {\n    Object.values(processedData.clientWeeklyData).forEach(client => {\n        if (client.incidentSummary?.totalIncidents > 0) {\n            client.incidentSummary.incidentDetails.forEach(incident => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'incident',\n                    title: `Incident Follow-up: ${client.clientName}`,\n                    description: `IMMEDIATE follow-up required for incident involving ${client.clientName}. Incident: ${incident.description || 'Incident reported'}. Actions taken: ${incident.actionsTaken || 'Response documented'}. Outcome: ${incident.outcome || 'Under review'}. Ensure all safety protocols reviewed and family notified.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Healthcare Manager',\n                    patternType: 'safety_incident',\n                    trendDirection: 'concerning',\n                    groupCategory: 'Safety Response'\n                }, DAILY_TASK_RULES.immediate.incident);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// 2. MEDICATION ERROR TASKS\nif (processedData.clientWeeklyData) {\n    Object.values(processedData.clientWeeklyData).forEach(client => {\n        if (client.medicationCompliance?.issues?.length > 0) {\n            client.medicationCompliance.issues.forEach(issue => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'medication',\n                    title: `Medication Issue: ${client.clientName}`,\n                    description: `IMMEDIATE medication review required for ${client.clientName}. Issue: ${issue.issue || 'Medication error reported'}. Medications affected: ${issue.medications || 'See incident report'}. Time: ${issue.time || 'Time not specified'}. Review protocols, retrain staff if needed, and ensure client safety.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Nursing Supervisor',\n                    patternType: 'medication_error',\n                    trendDirection: 'concerning',\n                    groupCategory: 'Medication Safety'\n                }, DAILY_TASK_RULES.immediate.medication);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// 3. SWALLOWING SAFETY TASKS\nif (processedData.clientWeeklyData) {\n    Object.values(processedData.clientWeeklyData).forEach(client => {\n        if (client.swallowingAndSafety?.swallowingDifficulties?.length > 0) {\n            client.swallowingAndSafety.swallowingDifficulties.forEach(difficulty => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'swallowing',\n                    title: `Swallowing Assessment: ${client.clientName}`,\n                    description: `URGENT swallowing safety assessment required for ${client.clientName}. Difficulty reported: ${difficulty.description || 'Swallowing difficulty observed'}. Schedule speech pathology assessment, review meal textures, and implement safety protocols immediately.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Speech Pathologist',\n                    patternType: 'swallowing_safety',\n                    trendDirection: 'concerning',\n                    groupCategory: 'Swallowing Safety'\n                }, DAILY_TASK_RULES.immediate.swallowing);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n        \n        // Choking incidents\n        if (client.swallowingAndSafety?.chokingIncidents?.length > 0) {\n            client.swallowingAndSafety.chokingIncidents.forEach(incident => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'swallowing',\n                    title: `Choking Incident Review: ${client.clientName}`,\n                    description: `IMMEDIATE review required following choking incident for ${client.clientName}. Incident: ${incident.description || 'Choking incident reported'}. Implement enhanced monitoring, review meal plans, and ensure emergency protocols are current.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Speech Pathologist',\n                    patternType: 'choking_incident',\n                    trendDirection: 'critical',\n                    groupCategory: 'Emergency Response'\n                }, DAILY_TASK_RULES.immediate.swallowing);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// 4. NUTRITION CONCERN TASKS\nif (processedData.clientWeeklyData) {\n    Object.values(processedData.clientWeeklyData).forEach(client => {\n        if (client.nutritionMetrics?.concerns?.length > 0) {\n            client.nutritionMetrics.concerns.forEach(concern => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'nutrition',\n                    title: `Nutrition Intervention: ${client.clientName}`,\n                    description: `URGENT nutrition support required for ${client.clientName}. Concern: ${concern.reason || 'Nutrition issue reported'}. Meal details: ${concern.mealDetails || 'See shift notes'}. Hydration: ${concern.hydration || 'Review required'}. Schedule dietitian consultation and implement immediate intervention plan.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Dietitian',\n                    patternType: 'nutrition_concern',\n                    trendDirection: 'declining',\n                    groupCategory: 'Nutrition Support'\n                }, DAILY_TASK_RULES.urgent.nutrition);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// 5. STAFF CONCERN TASKS\nif (processedData.staffWeeklyData) {\n    Object.values(processedData.staffWeeklyData).forEach(staff => {\n        if (staff.wellbeingAndSupport?.concernsRaised?.length > 0) {\n            staff.wellbeingAndSupport.concernsRaised.forEach(concern => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'staff_concern',\n                    title: `Staff Support: ${staff.staffName}`,\n                    description: `URGENT staff support required for ${staff.staffName}. Concern type: ${concern.type || 'Staff concern'}. Details: ${concern.details || concern.explanation || 'Review required'}. Follow-up requested: ${concern.followUpRequested || 'TBD'}. Schedule meeting and provide appropriate support.`,\n                    entityCode: staff.staffCode,\n                    staffCode: staff.staffCode,\n                    assignedTo: 'HR Manager',\n                    patternType: 'staff_wellbeing',\n                    trendDirection: 'concerning',\n                    groupCategory: 'Staff Support'\n                }, DAILY_TASK_RULES.urgent.staff_concern);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// 6. COMMUNITY PARTICIPATION TASKS\nif (processedData.clientWeeklyData) {\n    Object.values(processedData.clientWeeklyData).forEach(client => {\n        if (client.appointmentsAndActivities?.communityDetails?.length > 0) {\n            const nonParticipationDetails = client.appointmentsAndActivities.communityDetails.filter(\n                detail => detail.participated === false || detail.reason\n            );\n            \n            nonParticipationDetails.forEach(detail => {\n                const task = createDailyTaskWithPrevention({\n                    type: 'community',\n                    title: `Community Engagement: ${client.clientName}`,\n                    description: `Community participation support needed for ${client.clientName}. Reason for non-participation: ${detail.reason || 'Client declined'}. Response: ${detail.response || 'Review engagement strategies'}. Develop strategies to encourage engagement and address barriers.`,\n                    entityCode: client.clientCode,\n                    clientCode: client.clientCode,\n                    assignedTo: 'Activities Coordinator',\n                    patternType: 'community_engagement',\n                    trendDirection: 'declining',\n                    groupCategory: 'Community Engagement'\n                }, DAILY_TASK_RULES.urgent.community);\n                \n                if (task) dailyTasks.push(task);\n            });\n        }\n    });\n}\n\n// PROFESSIONAL SUMMARY\nconsole.log(`=== DAILY TASK GENERATION COMPLETE ===`);\nconsole.log(`Total daily tasks created: ${dailyTasks.length}`);\nconsole.log(`Task groups created: ${groupSequence}`);\nconsole.log(`Duplicate prevention checks: ${recentTasks.size}`);\n\nif (dailyTasks.length === 0) {\n    console.log('✓ No immediate issues requiring daily intervention');\n    \n    return [{\n        json: {\n            systemStatus: 'stable',\n            message: 'Daily analysis shows no immediate interventions required',\n            reportPeriod: SYSTEM_CONFIG.reportPeriod,\n            timestamp: formatDateTime(new Date().toISOString()),\n            scope: 'daily'\n        }\n    }];\n}\n\nconsole.log(`✓ Daily task generation complete with duplicate prevention`);\nconsole.log(`✓ Tasks by priority: P1-IMMEDIATE: ${dailyTasks.filter(t => t.Priority.includes('P1')).length}, P2-URGENT: ${dailyTasks.filter(t => t.Priority.includes('P2')).length}, P3-DAILY: ${dailyTasks.filter(t => t.Priority.includes('P3')).length}`);\n\nreturn dailyTasks.map(task => ({ json: task }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        1744
+      ],
+      "id": "3aebaaa1-5337-44fd-82f4-c53bc9e9a1a3",
+      "name": "Daily Task Generator",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// COMPLETE WEEKLY TASK GENERATOR WITH DUPLICATE PREVENTION\n// Production-ready with built-in duplicate handling\n// Individual tasks with proper grouping and linking\n\nconsole.log('=== PROFESSIONAL WEEKLY TASK GENERATOR ===');\n\n// Get ai_tasks input from Report Splitter\nconst inputData = $input.all();\nconst targetInput = inputData.find(item => item.json.type === 'ai_tasks');\n\nif (!targetInput || !targetInput.json.processedData) {\n    console.log('No weekly pattern data found');\n    return [];\n}\n\nconst healthcareData = targetInput.json.processedData;\nconst weeklyTasks = [];\nlet taskSequence = 0;\nlet groupSequence = 0;\n\n// SYSTEM CONFIGURATION\nconst SYSTEM_CONFIG = {\n    facilityCode: 'HC',\n    reportPeriod: healthcareData.reportPeriod?.startDate || new Date().toLocaleDateString(),\n    version: '5.0-Professional'\n};\n\n// DUPLICATE PREVENTION SYSTEM (ADDED)\nconst weeklyRecentTasks = new Map(); // Track recent weekly tasks\n\n// PROFESSIONAL TASK RULES\nconst TASK_RULES = {\n    individual: {\n        training: {\n            priority: 'P3-INDIVIDUAL',\n            category: 'Staff Development',\n            assignedRole: 'Training Coordinator',\n            department: 'Human Resources',\n            dueDays: 14,\n            urgencyLevel: 'Complete Within 2 Weeks',\n            escalationDays: 21,\n            escalationTo: 'HR Manager',\n            complianceCategory: 'Professional Development'\n        },\n        workload: {\n            priority: 'P2-INDIVIDUAL',\n            category: 'Workload Management',\n            assignedRole: 'Healthcare Manager',\n            department: 'Clinical Operations',\n            dueDays: 7,\n            urgencyLevel: 'Address Within 1 Week',\n            escalationDays: 10,\n            escalationTo: 'Clinical Director',\n            complianceCategory: 'Resource Management'\n        },\n        nutrition: {\n            priority: 'P2-INDIVIDUAL',\n            category: 'Client Care',\n            assignedRole: 'Nursing Supervisor',\n            department: 'Clinical Operations',\n            dueDays: 5,\n            urgencyLevel: 'Review Within 5 Days',\n            escalationDays: 7,\n            escalationTo: 'Healthcare Manager',\n            complianceCategory: 'Nutrition Management'\n        }\n    },\n    system: {\n        safety: {\n            priority: 'P1-SYSTEM',\n            category: 'Quality Improvement',\n            assignedRole: 'Healthcare Manager',\n            department: 'Clinical Operations',\n            dueDays: 3,\n            urgencyLevel: 'Immediate Review Required',\n            escalationDays: 5,\n            escalationTo: 'Clinical Director',\n            complianceCategory: 'Safety Management'\n        },\n        equipment: {\n            priority: 'P2-SYSTEM',\n            category: 'Operations',\n            assignedRole: 'Operations Manager',\n            department: 'Operations',\n            dueDays: 10,\n            urgencyLevel: 'Schedule Within 10 Days',\n            escalationDays: 14,\n            escalationTo: 'Facility Manager',\n            complianceCategory: 'Equipment Management'\n        }\n    }\n};\n\n// HELPER FUNCTIONS\nfunction formatDateTime(isoString, format = 'full') {\n    if (!isoString) return '';\n    \n    try {\n        const date = new Date(isoString);\n        const options = {\n            timeZone: 'Australia/Sydney',\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit'\n        };\n        \n        if (format === 'full') {\n            options.hour = '2-digit';\n            options.minute = '2-digit';\n            options.hour12 = false;\n        }\n        \n        return date.toLocaleString('en-AU', options);\n    } catch (error) {\n        return new Date().toLocaleDateString('en-AU');\n    }\n}\n\nfunction generateTaskGroupId() {\n    groupSequence++;\n    const timestamp = Date.now().toString().slice(-6);\n    return `${SYSTEM_CONFIG.facilityCode}-GRP-${timestamp}-${groupSequence.toString().padStart(3, '0')}`;\n}\n\nfunction generateTaskId(taskType, priority, entityCode) {\n    taskSequence++;\n    const timestamp = Date.now().toString().slice(-6);\n    const typeCode = taskType.substring(0, 3).toUpperCase();\n    const priorityNum = priority.includes('P1') ? '1' : priority.includes('P2') ? '2' : '3';\n    const sequenceId = taskSequence.toString().padStart(4, '0');\n    \n    return `${SYSTEM_CONFIG.facilityCode}-${typeCode}${priorityNum}-${entityCode}-${timestamp}${sequenceId}`;\n}\n\nfunction calculateFollowUpDates(rule, createdDate) {\n    const created = new Date(createdDate);\n    const dueDate = new Date(created);\n    const escalationDate = new Date(created);\n    \n    dueDate.setDate(dueDate.getDate() + rule.dueDays);\n    escalationDate.setDate(escalationDate.getDate() + rule.escalationDays);\n    \n    return { dueDate, escalationDate };\n}\n\n// DUPLICATE PREVENTION FUNCTIONS (ADDED)\nfunction checkForExistingWeeklyTask(taskType, entityCode, area = '') {\n    const taskKey = `WEEKLY-${taskType}-${entityCode}-${area}`;\n    \n    if (weeklyRecentTasks.has(taskKey)) {\n        console.log(`⚠️ Weekly duplicate detected: ${taskKey} - Task already exists`);\n        return true;\n    }\n    \n    weeklyRecentTasks.set(taskKey, Date.now());\n    return false;\n}\n\nfunction shouldCreateWeeklyTask(taskType, priority, area = '') {\n    // System-wide tasks (P1-SYSTEM) always create if conditions met\n    if (priority.includes('P1-SYSTEM')) {\n        console.log(`✓ Creating P1-SYSTEM task: ${taskType} (high priority)`);\n        return true;\n    }\n    \n    // Individual tasks create if unique\n    if (priority.includes('INDIVIDUAL')) {\n        console.log(`✓ Creating individual task: ${taskType}`);\n        return true;\n    }\n    \n    // P2-SYSTEM tasks create if unique\n    if (priority.includes('P2-SYSTEM')) {\n        console.log(`✓ Creating P2-SYSTEM task: ${taskType}`);\n        return true;\n    }\n    \n    return true;\n}\n\n// ENHANCED TASK CREATION WITH DUPLICATE PREVENTION (UPDATED)\nfunction createIndividualTaskWithPrevention(taskData, rule, groupId = null) {\n    // Check for duplicates\n    const isDuplicate = checkForExistingWeeklyTask(\n        taskData.type, \n        taskData.entityCode, \n        taskData.area || ''\n    );\n    \n    if (isDuplicate && !shouldCreateWeeklyTask(taskData.type, rule.priority, taskData.area)) {\n        console.log(`⏭️ Skipping duplicate weekly task: ${taskData.type} for ${taskData.entityCode}`);\n        return null;\n    }\n    \n    const currentTime = new Date();\n    const followUpDates = calculateFollowUpDates(rule, currentTime);\n    const taskId = generateTaskId(taskData.type, rule.priority, taskData.entityCode);\n    \n    const task = {\n        TaskID: taskId,\n        CreatedDate: formatDateTime(currentTime.toISOString()),\n        Title: taskData.title,\n        Priority: rule.priority,\n        Urgency: rule.urgencyLevel,\n        Category: rule.category,\n        Status: 'Open',\n        AssignedRole: rule.assignedRole,\n        Department: rule.department,\n        AssignedTo: taskData.assignedTo || '',\n        DueDate: formatDateTime(followUpDates.dueDate.toISOString(), 'date'),\n        EscalationDate: formatDateTime(followUpDates.escalationDate.toISOString(), 'date'),\n        EscalationTo: rule.escalationTo,\n        FollowUpStatus: 'On Track',\n        \n        // SINGLE ENTITY IDs (Professional Approach)\n        ClientCode: taskData.clientCode || '',\n        StaffCode: taskData.staffCode || '',\n        \n        Description: taskData.description,\n        ComplianceCategory: rule.complianceCategory,\n        PatternType: taskData.patternType || 'individual',\n        AffectedCount: 1, // Always 1 for individual tasks\n        TrendDirection: taskData.trendDirection || 'stable',\n        \n        // GROUP LINKING (Professional Relationship Management)\n        TaskGroupID: groupId || '',\n        GroupCategory: taskData.groupCategory || '',\n        RelatedTaskCount: taskData.relatedTaskCount || 1,\n        \n        // DUPLICATE PREVENTION METADATA (ADDED)\n        RelatedWeeklyTask: 'NO', // This IS the weekly task\n        TaskRelationship: 'WEEKLY_PATTERN',\n        TaskPriority: rule.priority,\n        \n        CompletedDate: '',\n        CompletedBy: '',\n        ResolutionSummary: '',\n        FollowUpNotes: '',\n        EscalationCount: 0,\n        LastFollowUp: '',\n        SourceReport: `Healthcare Analytics - ${SYSTEM_CONFIG.reportPeriod}`,\n        CreatedBy: `Professional Analytics v${SYSTEM_CONFIG.version}`,\n        FacilityCode: SYSTEM_CONFIG.facilityCode,\n        DataScope: 'weekly', // CORRECTED FROM 'individual'\n        LastUpdated: formatDateTime(currentTime.toISOString())\n    };\n    \n    if (isDuplicate) {\n        console.log(`⚡ Created weekly task (potential duplicate flagged): ${taskId}`);\n    } else {\n        console.log(`✓ Created individual weekly task: ${taskId} for ${taskData.staffCode || taskData.clientCode}`);\n    }\n    \n    return task;\n}\n\nfunction createSystemTaskWithPrevention(taskData, rule) {\n    // Check for duplicates  \n    const isDuplicate = checkForExistingWeeklyTask(taskData.type, 'SYS', '');\n    \n    if (isDuplicate && !shouldCreateWeeklyTask(taskData.type, rule.priority)) {\n        console.log(`⏭️ Skipping duplicate system task: ${taskData.type}`);\n        return null;\n    }\n    \n    const currentTime = new Date();\n    const followUpDates = calculateFollowUpDates(rule, currentTime);\n    const taskId = generateTaskId(taskData.type, rule.priority, 'SYS');\n    \n    const task = {\n        TaskID: taskId,\n        CreatedDate: formatDateTime(currentTime.toISOString()),\n        Title: taskData.title,\n        Priority: rule.priority,\n        Urgency: rule.urgencyLevel,\n        Category: rule.category,\n        Status: 'Open',\n        AssignedRole: rule.assignedRole,\n        Department: rule.department,\n        AssignedTo: '',\n        DueDate: formatDateTime(followUpDates.dueDate.toISOString(), 'date'),\n        EscalationDate: formatDateTime(followUpDates.escalationDate.toISOString(), 'date'),\n        EscalationTo: rule.escalationTo,\n        FollowUpStatus: 'On Track',\n        \n        // System-wide tasks don't have specific client/staff\n        ClientCode: '',\n        StaffCode: '',\n        \n        Description: taskData.description,\n        ComplianceCategory: rule.complianceCategory,\n        PatternType: 'system_wide',\n        AffectedCount: taskData.affectedCount || 0,\n        TrendDirection: taskData.trendDirection || 'concerning',\n        \n        TaskGroupID: '',\n        GroupCategory: 'System Wide',\n        RelatedTaskCount: 1,\n        \n        // DUPLICATE PREVENTION METADATA (ADDED)\n        RelatedWeeklyTask: 'NO', // This IS the weekly task\n        TaskRelationship: 'SYSTEM_WIDE',\n        TaskPriority: rule.priority,\n        \n        CompletedDate: '',\n        CompletedBy: '',\n        ResolutionSummary: '',\n        FollowUpNotes: '',\n        EscalationCount: 0,\n        LastFollowUp: '',\n        SourceReport: `System Analytics - ${SYSTEM_CONFIG.reportPeriod}`,\n        CreatedBy: `Professional Analytics v${SYSTEM_CONFIG.version}`,\n        FacilityCode: SYSTEM_CONFIG.facilityCode,\n        DataScope: 'weekly', // CORRECTED FROM 'system'\n        LastUpdated: formatDateTime(currentTime.toISOString())\n    };\n    \n    console.log(`✓ Created system task: ${taskId} affecting ${taskData.affectedCount} entities`);\n    return task;\n}\n\n// 1. INDIVIDUAL TRAINING TASKS (Professional Approach) - EXISTING LOGIC UNCHANGED\nconst trainingRequests = [];\nif (healthcareData.staffWeeklyData) {\n    Object.values(healthcareData.staffWeeklyData).forEach(staff => {\n        if (staff.professionalDevelopment?.trainingNeeds?.length > 0) {\n            staff.professionalDevelopment.trainingNeeds.forEach(need => {\n                trainingRequests.push({\n                    staffCode: staff.staffCode,\n                    staffName: staff.staffName,\n                    areas: need.areas,\n                    supportType: need.supportType,\n                    date: need.date\n                });\n            });\n        }\n    });\n}\n\n// Group training requests by area for coordination, but create individual tasks\nconst trainingByArea = trainingRequests.reduce((groups, request) => {\n    const area = request.areas || 'General Training';\n    if (!groups[area]) groups[area] = [];\n    groups[area].push(request);\n    return groups;\n}, {});\n\n// Create individual training tasks with proper grouping - UPDATED WITH DUPLICATE PREVENTION\nObject.entries(trainingByArea).forEach(([area, requests]) => {\n    if (requests.length >= 1) {\n        const groupId = requests.length > 1 ? generateTaskGroupId() : null;\n        \n        requests.forEach(request => {\n            const task = createIndividualTaskWithPrevention({\n                type: 'training',\n                title: `Training Required: ${area}`,\n                description: `Individual training assignment for ${request.staffName} in ${area}. Support type: ${request.supportType}. ${requests.length > 1 ? `Part of group training initiative ${groupId} with ${requests.length} participants.` : ''}`,\n                entityCode: request.staffCode,\n                staffCode: request.staffCode,\n                assignedTo: request.staffName,\n                patternType: 'training_need',\n                trendDirection: 'improving',\n                groupCategory: requests.length > 1 ? `Group Training: ${area}` : '',\n                relatedTaskCount: requests.length,\n                area: area // ADDED FOR DUPLICATE DETECTION\n            }, TASK_RULES.individual.training, groupId);\n            \n            if (task) weeklyTasks.push(task);\n        });\n    }\n});\n\n// 2. INDIVIDUAL WORKLOAD TASKS (Professional Approach) - EXISTING LOGIC UNCHANGED\nconst highWorkloadStaff = [];\nif (healthcareData.staffWeeklyData) {\n    Object.values(healthcareData.staffWeeklyData).forEach(staff => {\n        if (staff.clientsWorkedWith?.length > 5) {\n            highWorkloadStaff.push({\n                staffCode: staff.staffCode,\n                staffName: staff.staffName,\n                clientCount: staff.clientsWorkedWith.length,\n                clients: staff.clientsWorkedWith\n            });\n        }\n    });\n}\n\n// Create individual workload assessment tasks - UPDATED WITH DUPLICATE PREVENTION\nif (highWorkloadStaff.length >= 1) {\n    const groupId = highWorkloadStaff.length > 1 ? generateTaskGroupId() : null;\n    \n    highWorkloadStaff.forEach(staff => {\n        const task = createIndividualTaskWithPrevention({\n            type: 'workload',\n            title: `Workload Assessment: ${staff.staffName}`,\n            description: `Individual workload review for ${staff.staffName} who managed ${staff.clientCount} clients this week. Assess capacity, stress levels, and redistribution needs. ${highWorkloadStaff.length > 1 ? `Part of facility-wide workload review ${groupId}.` : ''}`,\n            entityCode: staff.staffCode,\n            staffCode: staff.staffCode,\n            assignedTo: 'Healthcare Manager',\n            patternType: 'high_workload',\n            trendDirection: 'concerning',\n            groupCategory: highWorkloadStaff.length > 1 ? 'Workload Assessment Initiative' : '',\n            relatedTaskCount: highWorkloadStaff.length\n        }, TASK_RULES.individual.workload, groupId);\n        \n        if (task) weeklyTasks.push(task);\n    });\n}\n\n// 3. INDIVIDUAL NUTRITION TASKS (Professional Approach) - EXISTING LOGIC UNCHANGED\nconst nutritionConcerns = [];\nif (healthcareData.clientWeeklyData) {\n    Object.values(healthcareData.clientWeeklyData).forEach(client => {\n        if (client.nutritionMetrics?.complianceRate < 85) {\n            nutritionConcerns.push({\n                clientCode: client.clientCode,\n                clientName: client.clientName,\n                complianceRate: client.nutritionMetrics.complianceRate,\n                concerns: client.nutritionMetrics.concerns?.length || 0\n            });\n        }\n    });\n}\n\n// Create individual nutrition tasks - UPDATED WITH DUPLICATE PREVENTION\nif (nutritionConcerns.length >= 1) {\n    const groupId = nutritionConcerns.length > 1 ? generateTaskGroupId() : null;\n    \n    nutritionConcerns.forEach(client => {\n        const task = createIndividualTaskWithPrevention({\n            type: 'nutrition',\n            title: `Nutrition Review: ${client.clientName}`,\n            description: `Individual nutrition assessment for ${client.clientName} with ${client.complianceRate}% compliance rate. ${client.concerns} concerns documented this week. Schedule dietitian consultation and care plan review. ${nutritionConcerns.length > 1 ? `Part of nutrition improvement initiative ${groupId}.` : ''}`,\n            entityCode: client.clientCode,\n            clientCode: client.clientCode,\n            assignedTo: 'Nursing Supervisor',\n            patternType: 'nutrition_concern',\n            trendDirection: 'declining',\n            groupCategory: nutritionConcerns.length > 1 ? 'Nutrition Improvement Initiative' : '',\n            relatedTaskCount: nutritionConcerns.length\n        }, TASK_RULES.individual.nutrition, groupId);\n        \n        if (task) weeklyTasks.push(task);\n    });\n}\n\n// 4. SYSTEM-WIDE TASKS (For facility-level issues) - UPDATED WITH DUPLICATE PREVENTION\nconst totalIncidents = healthcareData.aiAnalysisData?.overallTrends?.totalIncidents || 0;\nconst medicationIssues = healthcareData.aiAnalysisData?.overallTrends?.medicationIssues || 0;\n\nif (totalIncidents >= 3) {\n    const task = createSystemTaskWithPrevention({\n        type: 'safety',\n        title: `Facility Safety System Review`,\n        description: `System-wide safety audit required due to ${totalIncidents} incidents this week. Comprehensive review of safety protocols, environmental hazards, and staff training. Implement facility-wide safety improvements.`,\n        affectedCount: totalIncidents,\n        trendDirection: 'concerning'\n    }, TASK_RULES.system.safety);\n    \n    if (task) weeklyTasks.push(task);\n}\n\nif (medicationIssues >= 2) {\n    const task = createSystemTaskWithPrevention({\n        type: 'medication',\n        title: `Medication Management System Audit`,\n        description: `System-wide medication safety review due to ${medicationIssues} medication issues this week. Audit protocols, training, documentation, and environmental factors affecting medication safety.`,\n        affectedCount: medicationIssues,\n        trendDirection: 'concerning'\n    }, TASK_RULES.system.safety);\n    \n    if (task) weeklyTasks.push(task);\n}\n\n// PROFESSIONAL SUMMARY - ENHANCED WITH DUPLICATE TRACKING\nconsole.log(`=== PROFESSIONAL WEEKLY TASK GENERATION COMPLETE ===`);\nconsole.log(`Individual training tasks: ${trainingRequests.length}`);\nconsole.log(`Individual workload tasks: ${highWorkloadStaff.length}`);\nconsole.log(`Individual nutrition tasks: ${nutritionConcerns.length}`);\nconsole.log(`System-wide tasks: ${totalIncidents >= 3 ? 1 : 0} + ${medicationIssues >= 2 ? 1 : 0}`);\nconsole.log(`Total tasks created: ${weeklyTasks.length}`);\nconsole.log(`Task groups created: ${groupSequence}`);\nconsole.log(`Duplicate prevention checks: ${weeklyRecentTasks.size}`); // ADDED\n\nif (weeklyTasks.length === 0) {\n    console.log('✓ No issues requiring intervention - optimal facility operations');\n    \n    return [{\n        json: {\n            systemStatus: 'optimal',\n            message: 'Weekly analysis shows optimal operations - no interventions required',\n            reportPeriod: SYSTEM_CONFIG.reportPeriod,\n            timestamp: formatDateTime(new Date().toISOString()),\n            scope: 'weekly'\n        }\n    }];\n}\n\nconsole.log(`✓ Professional weekly task generation complete with duplicate prevention`);\n\nreturn weeklyTasks.map(task => ({ json: task }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        1056
+      ],
+      "id": "fe56bd76-d718-4c2e-8968-fd39fea5b8ee",
+      "name": "Weekly Task Generator",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        1744
+      ],
+      "id": "9d86d186-84e3-41f2-933b-54fac3d05ee3",
+      "name": "Daily Task Store"
+    },
+    {
+      "parameters": {
+        "jsCode": "// COMPLETE WEEKLY DATA PROCESSOR - DYNAMIC MONDAY-SUNDAY WEEKS\n// ROSTER INTEGRATION - ENHANCED DEBUGGING\nlet rosterData = [];\nlet allFormResponses = []; // rosterData will contain roster shift objects\n\ntry {\n    const allInputs = $input.all();\n    console.log(`Total inputs from merge: ${allInputs.length}`);\n    \n    // DEBUG: Show complete field structure of first 5 items\n    console.log('=== DEBUGGING INPUT STRUCTURE ===');\n    allInputs.slice(0, 5).forEach((input, index) => {\n        console.log(`\\n--- Input ${index + 1} ---`);\n        console.log(`All fields:`, Object.keys(input));\n        console.log(`Field count:`, Object.keys(input).length);\n        \n        \n        \n        // Check for common field variations\n        const possibleFormFields = [\n            'Timestamp', 'timestamp', 'Submission Time', 'Date', 'date',\n            'Staff Full Name', 'Staff Name', 'staffName', 'staff_name',\n            'Client Full Name', 'Client Name', 'clientName', 'client_name',\n            'clientCode', 'client_code', 'Client Code',\n            'staffCode', 'staff_code', 'Staff Code',\n            'Week ID', 'week_id', 'WeekID', 'weekId'\n        ];\n        \n        const foundFields = possibleFormFields.filter(field => input.hasOwnProperty(field));\n        console.log(`  Possible form fields found:`, foundFields);\n    });\n    \n    // DEBUG: Check for NameCodeManager output patterns\n    console.log('\\n=== CHECKING FOR NAMECODMANAGER OUTPUT ===');\n    const withClientCode = allInputs.filter(input => input.json?.clientCode).length;\n    const withStaffCode = allInputs.filter(input => input.json?.staffCode).length;\n    const withBothCodes = allInputs.filter(input => input.json?.clientCode && input.json?.staffCode).length;\n    \n    console.log(`Items with clientCode: ${withClientCode}`);\n    console.log(`Items with staffCode: ${withStaffCode}`);\n    console.log(`Items with both codes: ${withBothCodes}`);\n    \n    // DEBUG: Check for roster patterns\n    console.log('\\n=== CHECKING FOR ROSTER PATTERNS ===');\n    const possibleRosterFields = [\n        'Staff Code', 'staffCode', 'staff_code',\n        'Client Code', 'clientCode', 'client_code', \n        'Full Name', 'Name', 'Staff Name', 'Client Name'\n    ];\n    \n    // Show sample of what might be roster vs form data  \n    const sampleRoster = allInputs.filter(input => {\n        if (input.json && typeof input.json === 'object') {\n            const fields = Object.keys(input.json);\n            return fields.length <= 5 && \n                   !input.json.clientCode &&\n                   !input.json.staffCode &&\n                   !input.json.Timestamp;\n        }\n        const fields = Object.keys(input);\n        return fields.length <= 3 && \n               (fields.includes('Staff Code') || fields.includes('Client Code'));\n    });\n    \n    const sampleForms = allInputs.filter(input => {\n        if (input.json && typeof input.json === 'object') {\n            const jsonData = input.json;\n            return Object.keys(jsonData).length > 10 || \n                   jsonData.clientCode || \n                   jsonData.staffCode ||\n                   jsonData.Timestamp ||\n                   jsonData['Staff Full Name'];\n        }\n        return false;\n    });\n    \n    console.log(`Potential roster items: ${sampleRoster.length}`);\n    console.log(`Potential form items: ${sampleForms.length}`);\n    \n    if (sampleRoster.length > 0) {\n        console.log('Sample roster item keys:', Object.keys(sampleRoster[0]));\n        if (sampleRoster[0].json) {\n            console.log('Sample roster json keys:', Object.keys(sampleRoster[0].json));\n        }\n    }\n    if (sampleForms.length > 0) {\n        console.log('Sample form item keys:', Object.keys(sampleForms[0]));\n        if (sampleForms[0].json) {\n            console.log('Sample form json keys (first 10):', Object.keys(sampleForms[0].json).slice(0, 10));\n            console.log('Has clientCode:', !!sampleForms[0].json.clientCode);\n            console.log('Has staffCode:', !!sampleForms[0].json.staffCode);\n        }\n    }\n    \n    // CORRECTED: Access data inside the json field\n    allFormResponses = allInputs.filter(input => {\n        // Check if this has the nested json structure with form data\n        if (input.json && typeof input.json === 'object') {\n            const jsonData = input.json;\n            // Look for signs this is form data (processed by NameCodeManager)\n            return jsonData.clientCode || jsonData.staffCode || \n                   jsonData.Timestamp || jsonData['Staff Full Name'] ||\n                   Object.keys(jsonData).length > 10; // Form data has many fields\n        }\n        return false;\n    });\n    \n    rosterData = allInputs.filter(input => {\n        // Check if this is simple roster data (no nested json structure)\n        if (input.json && typeof input.json === 'object') {\n            const jsonData = input.json;\n            const fields = Object.keys(jsonData);\n            return fields.length <= 5 && \n                   !jsonData.clientCode && \n                   !jsonData.staffCode &&\n                   !jsonData.Timestamp &&\n                   !jsonData['Staff Full Name'];\n        }\n        // Simple key-value roster items without json wrapper\n        const fields = Object.keys(input);\n        \n      return fields.length <= 3 && \n       !input.clientCode &&\n       !input.staffCode &&\n       !fields.some(key => key.toLowerCase().includes('timestamp'));\n    });\n    console.log(`\\n=== FINAL SEPARATION ===`);\n    console.log(`Form responses found: ${allFormResponses.length}`);\n    console.log(`Roster data found: ${rosterData.length}`);\n    \n} catch (error) {\n    console.log('Error processing merge inputs:', error);\n    allFormResponses = $input.all();\n}\n\n\nconsole.log(`=== COMPLETE WEEKLY DATA PROCESSOR ===`);\n\n// DYNAMIC MONDAY-SUNDAY WEEK CALCULATION\nfunction getLastCompletedWeek() {\n    const now = new Date();\n    const currentDay = now.getDay(); // 0=Sunday, 1=Monday, 2=Tuesday, etc.\n    \n    // Calculate days to subtract to get to last Monday\n    let daysToLastMonday;\n    if (currentDay === 0) { // Sunday\n        daysToLastMonday = 6; // Go back to last Monday\n    } else { // Monday(1) through Saturday(6)  \n      daysToLastMonday = currentDay + 6; // Go back to previous week's Monday\n    }\n    \n   // Calculate last week's Monday start (00:00:00)\n    const lastWeekMonday = new Date(now);\n    lastWeekMonday.setDate(now.getDate() - daysToLastMonday);\n    lastWeekMonday.setHours(0, 0, 0, 0);\n    \n    // Calculate last week's Sunday end (23:59:59)\n    const lastWeekSunday = new Date(lastWeekMonday);\n    lastWeekSunday.setDate(lastWeekMonday.getDate() + 6);\n    lastWeekSunday.setHours(23, 59, 59, 999);\n    \n    return { startDate: lastWeekMonday, endDate: lastWeekSunday };\n}\n\n// Get the target week\nconst { startDate, endDate } = getLastCompletedWeek();\n\nconsole.log(`Target week: ${startDate.toLocaleDateString()} (Monday) to ${endDate.toLocaleDateString()} (Sunday)`);\nconsole.log(`Processing ${allFormResponses.length} total form responses`);\n\n// Add sample timestamp logging\nconsole.log('Sample timestamps from first 3 responses:');\nallFormResponses.slice(0, 3).forEach((response, index) => {\n     console.log(`Response ${index + 1}: \"${response.json['Timestamp']}\"`);\n});\n\n// ROBUST DATE VALIDATION FUNCTION - WITH DEBUG\nfunction isWithinWeek(dateString) {\n    if (!dateString) {\n        console.log(`Empty date string received`);\n        return false;\n    }\n    \n    console.log(`Checking date: \"${dateString}\"`);\n    \n    try {\n        // Handle different date formats\n        let date;\n        \n        // Check if it's in DD/MM/YYYY format (like 16/09/2025)\n        if (dateString.includes('/')) {\n            const datePart = dateString.split(' ')[0]; // Get date part only\n            const parts = datePart.split('/');\n            \n            if (parts.length === 3 && parts[0].length <= 2 && parts[1].length <= 2 && parts[2].length === 4) {\n                // DD/MM/YYYY format - rearrange to MM/DD/YYYY for JavaScript\n                date = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`);\n                console.log(`Converted DD/MM/YYYY: ${datePart} → ${parts[1]}/${parts[0]}/${parts[2]}`);\n            } else {\n                date = new Date(dateString);\n            }\n        } else {\n            date = new Date(dateString);\n        }\n        \n        console.log(`Parsed date: ${date.toLocaleDateString()}`);\n        console.log(`Date is valid: ${!isNaN(date.getTime())}`);\n        \n        // Validate the date\n        if (isNaN(date.getTime())) {\n            console.warn(`Invalid date format: ${dateString}`);\n            return false;\n        }\n        \n        // Compare using timestamps for precision\n        const isInRange = date >= startDate && date <= endDate;\n        console.log(`Date ${date.toLocaleDateString()} is in range ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}: ${isInRange}`);\n        \n        return isInRange;\n    } catch (error) {\n        console.warn(`Error parsing date: ${dateString}`, error);\n        return false;\n    }\n}\n\n// STRICT WEEKLY DATA FILTERING - WITH DEBUG\nconsole.log('Starting date filtering...');\nconst filteredResponses = allFormResponses.filter((response, index) => {\n    const timestamp = response.json['Timestamp'];\n    console.log(`--- Filtering response ${index + 1} ---`);\n    const result = isWithinWeek(timestamp);\n    console.log(`Filter result for response ${index + 1}: ${result}`);\n    return result;\n});\n\nconsole.log(`Found ${filteredResponses.length} responses for processing`);\n\n// EARLY EXIT IF NO DATA\nif (filteredResponses.length === 0) {\n    console.log(`❌ NO DATA AVAILABLE FOR PROCESSING`);\n    console.log(`Available timestamps that were rejected:`);\n    allFormResponses.slice(0, 5).forEach((response, index) => {\n        console.log(`${index + 1}: ${response.json['Timestamp']}`);\n    });\n    \n    return [{\n        json: {\n            error: \"No data available for the target period\",\n            targetPeriod: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,\n            totalAvailableResponses: allFormResponses.length,\n            sampleTimestamps: allFormResponses.slice(0, 3).map(r => r['Timestamp']),\n            processedData: null\n        }\n    }];\n}\n\nfunction cleanData(value, defaultValue = 'Not specified') {\n    if (!value || value.toString().trim() === '' || \n        value.toString().toLowerCase().includes('not recorded') ||\n        value.toString().toLowerCase().includes('not specified') ||\n        value.toString().toLowerCase().includes('none')) {\n        return defaultValue;\n    }\n    return value.toString().trim();\n}\n\n// HELPER FUNCTION - Get field with multiple possible names\nfunction getFieldValue(response, possibleNames) {\n    for (const fieldName of possibleNames) {\n        if (response[fieldName] && String(response[fieldName]).trim()) {\n            return response[fieldName];\n        }\n    }\n    return null;\n}\n\n// Data structure\nconst processedData = {\n    reportPeriod: {\n        startDate: startDate.toLocaleDateString(),\n        endDate: endDate.toLocaleDateString(),\n        generatedOn: new Date().toLocaleString()\n    },\n    \n    clientWeeklyData: {},\n    staffWeeklyData: {},\n    \n    // Summary data for AI task generation\n    aiAnalysisData: {\n        overallTrends: {\n            totalShifts: 0,\n            totalIncidents: 0,\n            medicationIssues: 0,\n            nutritionConcerns: 0,\n            trainingNeeds: 0,\n            staffConcerns: 0,\n            swallowingDifficulties: 0,\n            chokingConcerns: 0,\n            communityParticipationIssues: 0,\n            appointmentsMissed: 0,\n            shiftDifficulties: 0,\n            equipmentIssues: 0,\n            resourceShortages: 0\n        },\n        keyPatterns: [],\n        priorityAreas: []\n    },\n    \n    // NEW: Missing forms tracking\n    missingFormsData: {\n        expectedShifts: [],\n        submittedForms: [],\n        missingForms: [],\n        rosterAvailable: rosterData.length > 0,\n        completionRate: 100\n    },\n    \n    validationReport: {\n        totalProcessed: 0,\n        successfulMatches: { staff: 0, clients: 0 },\n        failedMatches: { staff: 0, clients: 0 }\n    }\n};\n\n// Process only the filtered weekly data\nfilteredResponses.forEach(response => {\n    processFormResponse(response);\n});\n\nfunction processFormResponse(response) {\n    const timestamp = response.json['Timestamp'] || new Date().toISOString();\n    \n    processedData.validationReport.totalProcessed++;\n    \n    // Get pre-coded data from NameCodeManager\n    const clientCode = response.json.clientCode || 'CT999';\n    const staffCode = response.json.staffCode || 'STF999';\n    const clientName = response.json.clientName || cleanData(response['Participant Full Name']);\n    const staffName = response.json.staffName || cleanData(response['Staff Full Name']);\n    \n    // Track matching success from NameCodeManager\n    if (response.json.clientMatched) {\n        processedData.validationReport.successfulMatches.clients++;\n    } else {\n        processedData.validationReport.failedMatches.clients++;\n    }\n    \n    if (response.json.staffMatched) {\n        processedData.validationReport.successfulMatches.staff++;\n    } else {\n        processedData.validationReport.failedMatches.staff++;\n    }\n    \n    // Initialize data structures\n    if (!processedData.clientWeeklyData[clientCode]) {\n        initializeClientData(clientCode, clientName);\n    }\n    \n    if (!processedData.staffWeeklyData[staffCode]) {\n        initializeStaffData(staffCode, staffName);\n    }\n    \n    // Process the shift data\n    processShiftData(response, clientCode, staffCode);\n    \n    // Update counters\n    processedData.clientWeeklyData[clientCode].totalShifts++;\n    processedData.staffWeeklyData[staffCode].totalShifts++;\n    processedData.staffWeeklyData[staffCode].clientsWorkedWith.add(clientName);\n    processedData.aiAnalysisData.overallTrends.totalShifts++;\n}\n\nfunction initializeClientData(clientCode, clientName) {\n    processedData.clientWeeklyData[clientCode] = {\n        clientCode: clientCode,\n        clientName: clientName,\n        totalShifts: 0,\n        shiftDetails: [],\n        \n        // Health & Safety Metrics\n        medicationCompliance: {\n            totalAdministrations: 0,\n            scheduledGiven: 0,\n            missedDoses: 0,\n            prnUsage: [],\n            issues: [],\n            complianceRate: 100\n        },\n        \n        nutritionMetrics: {\n            adequateIntakeCount: 0,\n            inadequateIntakeCount: 0,\n            concerns: [],\n            improvements: [],\n            complianceRate: 100\n        },\n        \n        swallowingAndSafety: {\n            swallowingDifficulties: [],\n            chokingIncidents: [],\n            safetyMeasures: []\n        },\n        \n        behavioralObservations: {\n            moodPatterns: [],\n            participationLevels: [],\n            socialInteractions: [],\n            healthConcerns: []\n        },\n        \n        incidentSummary: {\n            totalIncidents: 0,\n            incidentDetails: [],\n            resolutions: [],\n            preventiveMeasures: []\n        },\n        \n        appointmentsAndActivities: {\n            appointmentsScheduled: 0,\n            appointmentsAttended: 0,\n            appointmentDetails: [],\n            communityParticipation: 0,\n            communityDetails: [],\n            activitiesCompleted: []\n        },\n        \n        careQualityIndicators: {\n            handoverQuality: [],\n            documentationComplete: 0,\n            familyCommunication: [],\n            goalProgress: []\n        },\n        \n        // Weekly analysis results\n        weeklyInsights: {\n            strengths: [],\n            concerns: [],\n            recommendations: [],\n            priorityActions: []\n        }\n    };\n}\n\nfunction initializeStaffData(staffCode, staffName) {\n    processedData.staffWeeklyData[staffCode] = {\n        staffCode: staffCode,\n        staffName: staffName,\n        totalShifts: 0,\n        clientsWorkedWith: new Set(),\n        \n        // Performance Metrics\n        performanceMetrics: {\n            shiftCompletionRate: 100,\n            documentationQuality: [],\n            medicationAdministrationAccuracy: 0,\n            incidentHandling: [],\n            communicationEffectiveness: []\n        },\n        \n        clientCareQuality: {\n            medicationManagement: 0,\n            nutritionSupport: 0,\n            safetyProtocols: 0,\n            emergencyResponse: [],\n            proactiveActions: []\n        },\n        \n        professionalDevelopment: {\n            trainingNeeds: [],\n            skillsIdentified: [],\n            strengthsObserved: [],\n            improvementAreas: [],\n            developmentGoals: []\n        },\n        \n        wellbeingAndSupport: {\n            shiftDifficultyRatings: [],\n            concernsRaised: [],\n            supportRequested: [],\n            followUpNeeded: [],\n            workloadAssessment: 'appropriate'\n        },\n        \n        teamCollaboration: {\n            handoverQuality: [],\n            communicationWithTeam: [],\n            mentorshipActivities: [],\n            conflictResolution: []\n        },\n        \n        // Weekly performance summary\n        weeklyPerformance: {\n            overallRating: 85,\n            keyStrengths: [],\n            developmentPriorities: [],\n            supportRecommendations: []\n        }\n    };\n}\n\nfunction processShiftData(response, clientCode, staffCode) {\n    const clientData = processedData.clientWeeklyData[clientCode];\n    const staffData = processedData.staffWeeklyData[staffCode];\n    \n    // Store shift details with ALL available fields\n    const shiftDetail = {\n        timestamp: response.json['Timestamp'],\n        staffMember: response['Staff Full Name'],\n        location: response['Shift Location'],\n        signIn: response['Sign In Date & Time'],\n        signOut: response['Sign Out Date & Time'],\n        \n        // Enhanced activity details\n        dailyActivities: response['Daily Activities (including Personal Care)'],\n        activities: response['Activities'],\n        specificActivities: response['Please specify the activities'],\n        otherEngagements: response['Other Engagements'],\n        familyContacts: response['Family and Social Contacts (Phone/Video Calls)'],\n        sleep: response['Sleep'],\n        \n        // Behavioral and handover\n        behavior: response['Behavioural Notes / Mood Observations'],\n        handoverFrom: response['Handover from previous shift'],\n        handoverTo: response['Handover to next shift']\n    };\n    clientData.shiftDetails.push(shiftDetail);\n    \n    // Process all data types\n    processMedicationData(response, clientData, staffData);\n    processNutritionData(response, clientData, staffData);\n    processSwallowingData(response, clientData, staffData);\n    processIncidentData(response, clientData, staffData);\n    processCommunityData(response, clientData, staffData);\n    processAppointmentData(response, clientData, staffData);\n    processStaffPerformanceData(response, clientData, staffData);\n    processIRCData(response, clientData, staffData);\n    processBehavioralData(response, clientData, staffData);\n    processResourceManagement(response, clientData, staffData);\n    processTeamCollaboration(response, clientData, staffData);\n    processAdditionalFormFields(response, clientData, staffData);\n}\n\nfunction processMedicationData(response, clientData, staffData) {\n    const medsGiven = response['Were any medications administered during this shift?'];\n    \n    if (medsGiven && medsGiven.toLowerCase().includes('yes')) {\n        clientData.medicationCompliance.totalAdministrations++;\n        clientData.medicationCompliance.scheduledGiven++;\n        staffData.clientCareQuality.medicationManagement++;\n        \n        // CORRECTED: Use exact field name from your form\n        const medsList = response['If Individually administered (no chart/pack), then \\nlist all medications administered (if applicable)'];\n        const medTime = response['Medication time'];\n        const medSource = response['Medication source'];\n        const medMethod = response['Method of administration'];\n        const medIssues = response['Any issues or observations during administration?'];\n        \n        if (medIssues && !medIssues.toLowerCase().includes('no issues') && !medIssues.toLowerCase().includes('none')) {\n            clientData.medicationCompliance.issues.push({\n                issue: medIssues,\n                medications: medsList,\n                time: medTime,\n                method: medMethod,\n                source: medSource,\n                date: response.json['Timestamp']\n            });\n            processedData.aiAnalysisData.overallTrends.medicationIssues++;\n        }\n    }\n    \n    // Process PRN medications (all 3 possible PRNs)\n    for (let i = 1; i <= 3; i++) {\n        const prnName = response[`PRN${i} Medication name`];\n        if (prnName) {\n            const prnData = {\n                medication: prnName,\n                dose: response[`PRN${i} Dose`],\n                timeGiven: response[`PRN${i} Time given`],\n                reason: response[`PRN${i} Reason for administration`],\n                outcome: response[`PRN${i} Effect/Outcome observed`],\n                date: response.json['Timestamp']\n            };\n            clientData.medicationCompliance.prnUsage.push(prnData);\n        }\n    }\n    \n    // Process PRN status questions\n    const prnAdministered = response['PRN (as-needed) medications administered this shift'];\n    const anotherPRN = response['Another PRN to be recorded ?'];\n    const anotherPRN2 = response['Another PRN2 to be recorded ?'];\n    \n    if (prnAdministered || anotherPRN || anotherPRN2) {\n        staffData.clientCareQuality.medicationManagement++;\n    }\n}\n\nfunction processNutritionData(response, clientData, staffData) {\n    const adequateIntake = response['Did the participant consume adequate food or fluids?'];\n    \n    if (adequateIntake) {\n        if (adequateIntake.toLowerCase().includes('yes')) {\n            clientData.nutritionMetrics.adequateIntakeCount++;\n        } else if (adequateIntake.toLowerCase().includes('no')) {\n            clientData.nutritionMetrics.inadequateIntakeCount++;\n            const reason = response['If the participant did not consume adequate food or fluids, give the reason for why and what action was taken by staff?'];\n            if (reason) {\n                clientData.nutritionMetrics.concerns.push({\n                    reason: reason,\n                    date: response.json['Timestamp'],\n                    mealDetails: response['Meal Details'],\n                    hydration: response['Hydration Intake']\n                });\n            }\n            processedData.aiAnalysisData.overallTrends.nutritionConcerns++;\n        }\n    }\n}\n\nfunction processSwallowingData(response, clientData, staffData) {\n    const swallowingDifficulty = response['Did the participant have any difficulty chewing or swallowing during meals or with fluids?'];\n    \n    if (swallowingDifficulty && swallowingDifficulty.toLowerCase().includes('yes')) {\n        const explanation = response['Explain the difficulty in chewing or swallowing experienced during meals and with fluids, and what actions were taken by staff.'];\n        clientData.swallowingAndSafety.swallowingDifficulties.push({\n            description: explanation,\n            date: response.json['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.swallowingDifficulties++;\n    }\n    \n    // Handle both possible choking field names\n    const chokingConcerns = getFieldValue(response, [\n        'Were there any signs of choking, coughing, or discomfort while eating or drinking?',\n        'Were there any signs of choking, coughing, or discomfort while eating or drinking? If yes, explain the possible cause and describe the actions taken by staff.'\n    ]);\n    \n    if (chokingConcerns && chokingConcerns.toLowerCase().includes('yes')) {\n        const chokingDetails = response['Were there any signs of choking, coughing, or discomfort while eating or drinking? If yes, explain the possible cause and describe the actions taken by staff.'];\n        clientData.swallowingAndSafety.chokingIncidents.push({\n            description: chokingDetails,\n            date: response.json['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.chokingConcerns++;\n    }\n}\n\nfunction processIncidentData(response, clientData, staffData) {\n    const incidentOccurred = response['Did any incidents occur during this shift?'];\n    const hasIncidentData = response['Incident Date and Time'] || response['Location of Incident'];\n    \n    if ((incidentOccurred && incidentOccurred.toLowerCase().includes('yes')) || hasIncidentData) {\n        const incidentData = {\n            dateTime: response['Incident Date and Time'],\n            location: response['Location of Incident'],\n            peopleInvolved: response['People Involved'],\n            description: response['Describe What Happened'],\n            leadUp: response['What led up to the incident?'],\n            actionsTaken: response['Actions Taken / Response'],\n            outcome: response['Outcome of the Incident'],\n            reportedTo: response['Was it reported? If yes, to whom and how?'],\n            followUp: response['Follow-up / Recommendations '],\n            shiftDate: response.json['Timestamp']\n        };\n        \n        clientData.incidentSummary.totalIncidents++;\n        clientData.incidentSummary.incidentDetails.push(incidentData);\n        staffData.performanceMetrics.incidentHandling.push(incidentData.actionsTaken);\n        processedData.aiAnalysisData.overallTrends.totalIncidents++;\n    }\n}\n\nfunction processCommunityData(response, clientData, staffData) {\n    // Try both possible field names from your form\n    const communityParticipation = getFieldValue(response, [\n        'Did the participant participate in any community activities today?',\n        'Does the participant have community participation in this shift?'\n    ]);\n    \n    if (communityParticipation) {\n        if (communityParticipation.toLowerCase().includes('yes')) {\n            clientData.appointmentsAndActivities.communityParticipation++;\n        } else if (communityParticipation.toLowerCase().includes('no')) {\n            const reason = response['Why did the participant not attend the community activity today?'];\n            const responseOffered = response['How did the participant respond when the activity was offered?'];\n            \n            clientData.appointmentsAndActivities.communityDetails.push({\n                participated: false,\n                reason: reason,\n                response: responseOffered,\n                date: response.json['Timestamp']\n            });\n            processedData.aiAnalysisData.overallTrends.communityParticipationIssues++;\n        }\n    }\n    \n    // Process detailed community engagement data\n    const activityPlanned = response['Was the activity planned or spontaneous?'];\n    const informedAdvance = response['Were they informed and prepared for the activity in advance?'];\n    const engagement = response['How engaged was the client during the activity? '];\n    const barriers1 = response['Were there any barriers like transport, timing, or resources that affected participation?'];\n    const barriers2 = response['Were there any barriers to community participation?'];\n    const encouragementSteps = response['What steps or strategies did you take to encourage or motivate participation?'];\n    const improvementSuggestions = response['What could be done differently next time to support engagement?'];\n    const followUpActions = response['What follow up actions are required, and what suggestions can support the participant\\'s engagement in future activities?'];\n    const resourcesNeeded = response['Do you require any resources or guidance to better facilitate participation?'];\n    \n    if (activityPlanned || engagement || barriers1 || barriers2) {\n        clientData.appointmentsAndActivities.communityDetails.push({\n            planned: activityPlanned,\n            informedAdvance: informedAdvance,\n            engagement: engagement,\n            barriers: barriers1 || barriers2,\n            encouragementSteps: encouragementSteps,\n            improvements: improvementSuggestions,\n            followUp: followUpActions,\n            resourcesNeeded: resourcesNeeded,\n            date: response.json['Timestamp']\n        });\n    }\n}\n\nfunction processAppointmentData(response, clientData, staffData) {\n    const appointments = response['Were there any appointments during this shift?'];\n    \n    if (appointments && appointments.toLowerCase().includes('yes')) {\n        const appointmentData = {\n            type: response['Type of Appointment'],\n            purpose: response['Purpose of the Appointment'],\n            reason: response['Reason for the Visit'],\n            requestedBy: response['Who Requested the Appointment?'],\n            plannedUrgent: response['Was this Appointment Planned or Urgent?'],\n            clinicName: response['Name of Clinic or Service'],\n            professionalName: response['Name of the Professional Seen'],\n            location: response['Location'],\n            contactNumber: response['Contact Number of Clinic/Professional'],\n            summary: response['Brief Summary of the Appointment'],\n            followUpActions: response['Follow Up Actions Required'],\n            nextAppointment: response['Next Appointment Date (if scheduled)'],\n            documentsProvided: response['Were any documents provided?'],\n            participantResponse: response[\"Participant's Response or Reaction\"],\n            actionsTaken: response['What actions were taken immediately, and what actions still need to be taken?'],\n            date: response.json['Timestamp']\n        };\n        \n        clientData.appointmentsAndActivities.appointmentsScheduled++;\n        clientData.appointmentsAndActivities.appointmentsAttended++;\n        clientData.appointmentsAndActivities.appointmentDetails.push(appointmentData);\n    }\n}\n\nfunction processStaffPerformanceData(response, clientData, staffData) {\n    // Shift difficulty rating\n    const shiftRating = response['How did your shift go today?'];\n    if (shiftRating) {\n        staffData.wellbeingAndSupport.shiftDifficultyRatings.push(shiftRating);\n        \n        if (shiftRating.toLowerCase().includes('difficult')) {\n            const explanation = response['If you rated the shift as Difficult or Very Difficult, please explain why.'];\n            staffData.wellbeingAndSupport.concernsRaised.push({\n                type: 'shift_difficulty',\n                rating: shiftRating,\n                explanation: explanation,\n                date: response.json['Timestamp']\n            });\n            processedData.aiAnalysisData.overallTrends.shiftDifficulties++;\n        }\n    }\n    \n    // CORRECTED: Staff concerns field name (exact match)\n    const staffConcerns = response[\"Did you experience any concerns or issues during your shift that you'd like to report?\"];\n    if (staffConcerns && staffConcerns.toLowerCase().includes('yes')) {\n        const concernDetails = response['Would you like to provide more details about any concerns, issues, or complaints raised during this shift? If yes, please describe what happened and any actions taken.'];\n        const physicalEmotional = response['How are you feeling physically and emotionally after this shift?'];\n        const managementAwareness = response['Is there anything important you would like management to be aware of from this shift (e.g., participant needs, incidents, resources, or staff concerns)?'];\n        const followUpRequested = response['Would you like someone to follow up with you?'];\n        \n        staffData.wellbeingAndSupport.concernsRaised.push({\n            type: 'general_concern',\n            details: concernDetails,\n            physicalEmotionalState: physicalEmotional,\n            managementNotice: managementAwareness,\n            followUpRequested: followUpRequested,\n            date: response.json['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.staffConcerns++;\n    }\n    \n    // Training needs\n    const trainingNeeds = response['Do you feel you need additional training or support?'];\n    if (trainingNeeds && trainingNeeds.toLowerCase().includes('yes')) {\n        const trainingAreas = response['Which areas do you feel you need training in?'];\n        // CORRECTED: Handle the actual field name with newline\n        const supportType = response['What type of support would help you most?\\n'];\n        \n        staffData.professionalDevelopment.trainingNeeds.push({\n            areas: trainingAreas,\n            supportType: supportType,\n            date: response.json['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.trainingNeeds++;\n    }\n    \n    // Support needs\n    const supportNeeded = response['Did you need any additional support, resources, or information during your shift?'];\n    if (supportNeeded && !supportNeeded.toLowerCase().includes('no') && !supportNeeded.toLowerCase().includes('none')) {\n        staffData.wellbeingAndSupport.supportRequested.push({\n            support: supportNeeded,\n            date: response.json['Timestamp']\n        });\n    }\n}\n\nfunction processIRCData(response, clientData, staffData) {\n    const ircFaced = response['Did you face any issues, risks, or challenges during the shift?'];\n    \n    if (ircFaced && ircFaced.toLowerCase().includes('yes')) {\n        for (let i = 1; i <= 3; i++) {\n            const ircType = response[`Type of IRC (Issue/Risk/Challenge) ${i}`];\n            const ircDescription = response[`Describe the IRC ( issues, risks, or challenges) ${i}`];\n            \n            if (ircType && ircDescription) {\n                const ircData = {\n                    type: ircType,\n                    description: ircDescription,\n                    date: response.json['Timestamp']\n                };\n                \n                // Add to both client and staff data for comprehensive tracking\n                clientData.weeklyInsights.concerns.push(ircData);\n                staffData.wellbeingAndSupport.concernsRaised.push({\n                    type: 'irc',\n                    ircType: ircType,\n                    description: ircDescription,\n                    date: response.json['Timestamp']\n                });\n            }\n        }\n        \n        // Check for additional IRC reports\n        const irc2 = response['Is there a 2nd IRC to report ?'];\n        const irc3 = response['Is there a 3rd IRC to report ?'];\n        if (irc2 || irc3) {\n            console.log('Additional IRC reports indicated');\n        }\n    }\n}\n\nfunction processBehavioralData(response, clientData, staffData) {\n    const behaviorNotes = response['Behavioural Notes / Mood Observations'];\n    if (behaviorNotes && behaviorNotes !== 'Not specified') {\n        clientData.behavioralObservations.moodPatterns.push({\n            observation: behaviorNotes,\n            date: response.json['Timestamp']\n        });\n    }\n    \n    const healthConcerns = response['Did the participant show any signs of illness, fatigue, anxiety, or safety concerns?'];\n    if (healthConcerns && healthConcerns !== 'Not specified' && !healthConcerns.toLowerCase().includes('no')) {\n        clientData.behavioralObservations.healthConcerns.push({\n            concern: healthConcerns,\n            date: response.json['Timestamp']\n        });\n    }\n}\n\nfunction processResourceManagement(response, clientData, staffData) {\n    const itemsNeeded = response['Which items did you need or were running low?'];\n    const quantityNeeded = response['Please specify the quantity needed for each selected item'];\n    const omissionReason = response['Reason for omission'];\n    const additionalDetails = response['Reasoning and additional details'];\n    \n    if (itemsNeeded || quantityNeeded) {\n        staffData.wellbeingAndSupport.supportRequested.push({\n            type: 'resource_management',\n            itemsNeeded: itemsNeeded,\n            quantities: quantityNeeded,\n            omissionReason: omissionReason,\n            details: additionalDetails,\n            date: response.json['Timestamp']\n        });\n        processedData.aiAnalysisData.overallTrends.resourceShortages++;\n    }\n}\n\nfunction processTeamCollaboration(response, clientData, staffData) {\n    const positiveShift = response['Did anything go particularly well during your shift?'];\n    const positiveFeedback = response['Would you like to give positive feedback or recognise a team member (or anyone) for their support during this shift? If yes, please share details.'];\n    const additionalComments = response['Do you have any additional comments or suggestions for improving future shifts, teamwork, or participant support?'];\n    \n    if (positiveShift || positiveFeedback || additionalComments) {\n        staffData.teamCollaboration.communicationWithTeam.push({\n            positiveAspects: positiveShift,\n            teamRecognition: positiveFeedback,\n            improvementSuggestions: additionalComments,\n            date: response.json['Timestamp']\n        });\n    }\n}\n\nfunction processAdditionalFormFields(response, clientData, staffData) {\n    // Enhanced Activities Processing\n    const activities = response['Activities'];\n    const specificActivities = response['Please specify the activities'];\n    const otherEngagements = response['Other Engagements'];\n    const familyContacts = response['Family and Social Contacts (Phone/Video Calls)'];\n    const sleep = response['Sleep'];\n    \n    if (activities || specificActivities || otherEngagements) {\n        clientData.appointmentsAndActivities.activitiesCompleted.push({\n            generalActivities: activities || 'Not specified',\n            specificActivities: specificActivities || 'Not specified',\n            otherEngagements: otherEngagements || 'Not specified',\n            familyContacts: familyContacts || 'Not specified',\n            sleep: sleep || 'Not specified',\n            date: response.json['Timestamp']\n        });\n    }\n    \n    // Store handover quality\n    const handoverFrom = response['Handover from previous shift'];\n    const handoverTo = response['Handover to next shift'];\n    \n    if (handoverFrom || handoverTo) {\n        clientData.careQualityIndicators.handoverQuality.push({\n            from: handoverFrom,\n            to: handoverTo,\n            date: response.json['Timestamp']\n        });\n        staffData.teamCollaboration.handoverQuality.push({\n            from: handoverFrom,\n            to: handoverTo,\n            date: response.json['Timestamp']\n        });\n    }\n}\n\n// Convert Sets to Arrays for JSON serialization\nObject.values(processedData.staffWeeklyData).forEach(staff => {\n    staff.clientsWorkedWith = Array.from(staff.clientsWorkedWith);\n});\n\n// Calculate compliance rates and generate insights\nObject.values(processedData.clientWeeklyData).forEach(client => {\n    calculateClientMetrics(client);\n    generateClientInsights(client);\n});\n\nObject.values(processedData.staffWeeklyData).forEach(staff => {\n    calculateStaffMetrics(staff);\n    generateStaffInsights(staff);\n});\n\n// Generate AI analysis priorities\ngenerateAIPriorities();\n\nfunction calculateClientMetrics(client) {\n    // Medication compliance\n    if (client.medicationCompliance.totalAdministrations > 0) {\n        client.medicationCompliance.complianceRate = Math.round(\n            ((client.medicationCompliance.totalAdministrations - client.medicationCompliance.issues.length) / \n             client.medicationCompliance.totalAdministrations) * 100\n        );\n    }\n    \n    // Nutrition compliance\n    const totalNutritionAssessments = client.nutritionMetrics.adequateIntakeCount + client.nutritionMetrics.inadequateIntakeCount;\n    if (totalNutritionAssessments > 0) {\n        client.nutritionMetrics.complianceRate = Math.round(\n            (client.nutritionMetrics.adequateIntakeCount / totalNutritionAssessments) * 100\n        );\n    }\n    \n    // Community participation rate\n    if (client.totalShifts > 0) {\n        client.appointmentsAndActivities.participationRate = Math.round(\n            (client.appointmentsAndActivities.communityParticipation / client.totalShifts) * 100\n        );\n    }\n}\n\nfunction generateClientInsights(client) {\n    const insights = client.weeklyInsights;\n    \n    // Strengths\n    if (client.medicationCompliance.complianceRate >= 95) {\n        insights.strengths.push('Excellent medication compliance maintained');\n    }\n    if (client.nutritionMetrics.complianceRate >= 90) {\n        insights.strengths.push('Good nutritional intake patterns observed');\n    }\n    if (client.incidentSummary.totalIncidents === 0) {\n        insights.strengths.push('No safety incidents reported this week');\n    }\n    if (client.appointmentsAndActivities.participationRate >= 80) {\n        insights.strengths.push('Active community participation');\n    }\n    \n    // Concerns\n    if (client.medicationCompliance.complianceRate < 90) {\n        insights.concerns.push('Medication compliance requires attention');\n    }\n    if (client.nutritionMetrics.complianceRate < 80) {\n        insights.concerns.push('Nutrition support needs enhancement');\n    }\n    if (client.incidentSummary.totalIncidents > 1) {\n        insights.concerns.push('Multiple incidents requiring safety review');\n    }\n    if (client.swallowingAndSafety.swallowingDifficulties.length > 0) {\n        insights.concerns.push('Swallowing difficulties identified');\n    }\n    \n    // Recommendations\n    insights.recommendations.push('Continue regular monitoring and documentation');\n    if (client.behavioralObservations.healthConcerns.length > 0) {\n        insights.recommendations.push('Schedule health assessment review');\n    }\n    if (client.appointmentsAndActivities.participationRate < 60) {\n        insights.recommendations.push('Explore community engagement strategies');\n    }\n}\n\nfunction calculateStaffMetrics(staff) {\n    // Calculate overall performance\n    let performance = 85; // Base score\n    \n    if (staff.clientCareQuality.medicationManagement > 0) performance += 5;\n    if (staff.performanceMetrics.incidentHandling.length > 0) performance += 5;\n    if (staff.wellbeingAndSupport.concernsRaised.length === 0) performance += 5;\n    if (staff.professionalDevelopment.trainingNeeds.length === 0) performance += 5;\n    \n    staff.weeklyPerformance.overallRating = Math.min(100, performance);\n}\n\nfunction generateStaffInsights(staff) {\n    const performance = staff.weeklyPerformance;\n    \n    // Key strengths\n    performance.keyStrengths.push(`Completed ${staff.totalShifts} shifts professionally`);\n    if (staff.clientCareQuality.medicationManagement > 0) {\n        performance.keyStrengths.push('Demonstrated medication management competency');\n    }\n    if (staff.performanceMetrics.incidentHandling.length > 0) {\n        performance.keyStrengths.push('Effective incident response capabilities');\n    }\n    \n    // Development priorities\n    if (staff.professionalDevelopment.trainingNeeds.length > 0) {\n        performance.developmentPriorities.push('Complete identified training modules');\n    }\n    if (staff.wellbeingAndSupport.concernsRaised.length > 0) {\n        performance.developmentPriorities.push('Address reported concerns with management');\n    }\n}\n\nfunction generateAIPriorities() {\n    const trends = processedData.aiAnalysisData.overallTrends;\n    const priorities = processedData.aiAnalysisData.priorityAreas;\n    \n    if (trends.totalIncidents > 3) {\n        priorities.push('Incident prevention and safety protocol review');\n    }\n    if (trends.medicationIssues > 2) {\n        priorities.push('Medication administration training and protocols');\n    }\n    if (trends.nutritionConcerns > 2) {\n        priorities.push('Nutrition monitoring and support enhancement');\n    }\n    if (trends.trainingNeeds > 3) {\n        priorities.push('Staff development and training program expansion');\n    }\n    if (trends.staffConcerns > 2) {\n        priorities.push('Staff wellbeing and support system improvement');\n    }\n    if (trends.swallowingDifficulties > 1) {\n        priorities.push('Swallowing assessment and safety protocols');\n    }\n    if (trends.resourceShortages > 2) {\n        priorities.push('Resource management and supply chain optimization');\n    }\n}\n\n// NEW: MISSING FORMS DETECTION FUNCTION\nfunction detectMissingForms() {\n    if (rosterData.length === 0) {\n        console.log('No roster data - skipping missing forms detection');\n        return;\n    }\n\n    // Process roster data for the target week\n    const expectedShifts = rosterData.filter(shift => {\n        return isWithinWeek(shift.json?.date || shift.json?.Date || shift.json?.['Shift Date']);\n    });\n\n    // Track submitted forms\n    const submittedForms = filteredResponses.map(response => ({\n        staff: response.staffName || response['Staff Full Name'],\n        client: response.clientName || response['Participant Full Name'],\n        date: response['Sign In Date & Time'] || response.json['Timestamp']\n    }));\n\n    // Find missing forms\n    const missingForms = expectedShifts.filter(expectedShift => {\n        const expectedStaff = expectedShift.json?.staff || expectedShift.json?.Staff;\n        const expectedClient = expectedShift.json?.client || expectedShift.json?.Client;\n        \n        return !submittedForms.some(submitted => \n            submitted.staff === expectedStaff && submitted.client === expectedClient\n        );\n    });\n\n    // Update missing forms data\n    processedData.missingFormsData = {\n        expectedShifts: expectedShifts.length,\n        submittedForms: submittedForms.length,\n        missingForms: missingForms,\n        rosterAvailable: true,\n        completionRate: expectedShifts.length > 0 ? \n            Math.round((submittedForms.length / expectedShifts.length) * 100) : 100\n    };\n\n    console.log(`Missing forms detection: ${missingForms.length} missing out of ${expectedShifts.length} expected`);\n}\n\n// NEW: Run missing forms detection\ndetectMissingForms();\n\nconsole.log(`=== WEEKLY DATA PROCESSING COMPLETE ===`);\nconsole.log(`📅 Report Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);\nconsole.log(`✅ Processed ${processedData.aiAnalysisData.overallTrends.totalShifts} shifts from ${filteredResponses.length} responses`);\nconsole.log(`✅ Generated data for ${Object.keys(processedData.clientWeeklyData).length} clients`);\nconsole.log(`✅ Generated data for ${Object.keys(processedData.staffWeeklyData).length} staff members`);\nconsole.log(`📊 Staff matches: ${processedData.validationReport.successfulMatches.staff}/${processedData.validationReport.totalProcessed}`);\nconsole.log(`📊 Client matches: ${processedData.validationReport.successfulMatches.clients}/${processedData.validationReport.totalProcessed}`);\n\nreturn [{\n    json: {\n        processedData: processedData,\n        dataProcessingComplete: true,\n        readyForReports: true\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        688
+      ],
+      "id": "f00a727d-b8e1-4b9b-9376-762ec2c4ed89",
+      "name": "Robust Weekly Data Processor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// FIXED NAMECODEMANAGER - RUN ONCE FOR EACH ITEM\n\n\nclass NameCodeManager {\n    constructor() {\n        // Complete staff directory (no folder IDs - handled by separate routers)\n        this.staffMappings = {\n            'STF001': {\n                primary: 'Edward Todd',\n                variations: ['edward todd', 'edward', 'todd', 'e todd', 'ed todd', 'e. todd', 'edward t', 'edward t.', 'todd edward']\n            },\n            'STF002': {\n                primary: 'Yvette Fritz', \n                variations: ['yvette fritz', 'yvette', 'fritz', 'y fritz', 'y. fritz', 'yvette f', 'yvette f.', 'fritz yvette']\n            },\n            'STF003': {\n                primary: 'Vernon Benson',\n                variations: ['vernon benson', 'vernon', 'benson', 'v benson', 'v. benson', 'vernon b', 'vernon b.', 'benson vernon']\n            },\n            'STF004': {\n                primary: 'Anita Davis',\n                variations: ['anita davis', 'anita', 'davis', 'a davis', 'a. davis', 'anita d', 'anita d.', 'davis anita']\n            },\n            'STF005': {\n                primary: 'Matthew Deleon',\n                variations: ['matthew deleon', 'matthew', 'deleon', 'm deleon', 'matt deleon', 'matt', 'matthew d', 'matthew d.', 'deleon matthew']\n            },\n            'STF006': {\n                primary: 'Karina Perez',\n                variations: ['karina perez', 'karina', 'perez', 'k perez', 'k. perez', 'karina p', 'karina p.', 'perez karina']\n            },\n            'STF007': {\n                primary: 'Dominique Lawrence',\n                variations: ['dominique lawrence', 'dominique', 'lawrence', 'd lawrence', 'd. lawrence', 'dominique l', 'dom lawrence']\n            },\n            'STF008': {\n                primary: 'Jason Franklin',\n                variations: ['jason franklin', 'jason', 'franklin', 'j franklin', 'j. franklin', 'jason f', 'jason f.']\n            },\n            'STF009': {\n                primary: 'Karen Kelly',\n                variations: ['karen kelly', 'karen', 'kelly', 'k kelly', 'k. kelly', 'karen k', 'karen k.', 'kelly karen']\n            },\n            'STF010': {\n                primary: 'Ashley Faulkner',\n                variations: ['ashley faulkner', 'ashley', 'faulkner', 'a faulkner', 'a. faulkner', 'ashley f', 'ashley f.']\n            },\n            'STF011': {\n                primary: 'Anjali mothsra',\n                variations: ['anjali mothsra', 'anjali', 'mothsra', 'a mothsra']\n            },\n            'STF012': {\n                primary: 'Ankita',\n                variations: ['ankita', 'ankita sharma', 'ankita s']\n            },\n            'STF013': {\n                primary: 'Anshul',\n                variations: ['anshul', 'anshul sharma', 'anshul s']\n            },\n            'STF014': {\n                primary: 'Asha Rani',\n                variations: ['asha rani', 'asha', 'rani', 'a rani']\n            },\n            'STF015': {\n                primary: 'Gourav',\n                variations: ['gourav', 'gourav sharma', 'gourav s']\n            },\n            'STF016': {\n                primary: 'Harmeet Batth',\n                variations: ['harmeet batth', 'harmeet', 'batth', 'h batth']\n            },\n            'STF017': {\n                primary: 'Khushpreet singh',\n                variations: ['khushpreet singh', 'khushpreet', 'singh', 'k singh']\n            },\n            'STF018': {\n                primary: 'Naiya Patel',\n                variations: ['naiya patel', 'naiya', 'patel', 'n patel', 'patelnaiya17@gmail.com']\n            },\n            'STF019': {\n                primary: 'Saad Khan',\n                variations: ['saad khan', 'saad', 'khan', 's khan']\n            },\n            'STF020': {\n                primary: 'Sanjana singh',\n                variations: ['sanjana singh', 'sanjana', 's singh']\n            },\n            'STF021': {\n                primary: 'Simroz',\n                variations: ['simroz', 'simroz kaur']\n            },\n            'STF022': {\n                primary: 'Surbhi',\n                variations: ['surbhi', 'surbhi sharma']\n            },\n            'STF023': {\n                primary: 'Yogesh Kumar',\n                variations: ['yogesh kumar', 'yogesh', 'kumar', 'y kumar']\n            },\n            'STF024': {\n                primary: 'aanchal',\n                variations: ['aanchal', 'aanchal ritu']\n            }\n        };\n\n        // Complete client directory (no folder IDs - handled by separate routers)\n        this.clientMappings = {\n            'CT001': {\n                primary: 'testclient',\n                variations: ['test','testclients']\n            },\n\n    findStaffCode(name) {\n        if (!name) return { code: 'STF999', matched: false, primary: 'Unknown Staff' };\n        \n        // Check for existing code in input\n        const codeMatch = name.match(/STF\\d+/);\n        if (codeMatch) return { code: codeMatch[0], matched: true, primary: name };\n        \n        const clean = this.cleanName(name);\n        \n        // Try exact match\n        for (const [code, data] of Object.entries(this.staffMappings)) {\n            if (data.variations.includes(clean)) {\n                console.log(`Staff matched: \"${name}\" -> ${code} (${data.primary})`);\n                return { code, primary: data.primary, matched: true };\n            }\n        }\n\n        // Try partial match for short names\n        for (const [code, data] of Object.entries(this.staffMappings)) {\n            for (const variation of data.variations) {\n                if (clean.length >= 3 && (clean.includes(variation) || variation.includes(clean))) {\n                    console.log(`Staff partial match: \"${name}\" -> ${code} (${data.primary})`);\n                    return { code, primary: data.primary, matched: true };\n                }\n            }\n        }\n\n        console.log(`UNMATCHED STAFF: \"${name}\" -> STF999`);\n        return { code: 'STF999', matched: false, primary: name };\n    }\n\n    findClientCode(name) {\n        if (!name) return { code: 'CT999', matched: false, primary: 'Unknown Client' };\n        \n        // Check for existing code in input\n        const codeMatch = name.match(/CT\\d+/);\n        if (codeMatch) return { code: codeMatch[0], matched: true, primary: name };\n        \n        const clean = this.cleanName(name);\n        \n        // Try exact match\n        for (const [code, data] of Object.entries(this.clientMappings)) {\n            if (data.variations.includes(clean)) {\n                console.log(`Client matched: \"${name}\" -> ${code} (${data.primary})`);\n                return { code, primary: data.primary, matched: true };\n            }\n        }\n\n        // Try partial match for short names\n        for (const [code, data] of Object.entries(this.clientMappings)) {\n            for (const variation of data.variations) {\n                if (clean.length >= 3 && (clean.includes(variation) || variation.includes(clean))) {\n                    console.log(`Client partial match: \"${name}\" -> ${code} (${data.primary})`);\n                    return { code, primary: data.primary, matched: true };\n                }\n            }\n        }\n\n        console.log(`UNMATCHED CLIENT: \"${name}\" -> CT999`);\n        return { code: 'CT999', matched: false, primary: name };\n    }\n\n    cleanName(name) {\n        if (!name) return '';\n        return name.toString().toLowerCase().trim().replace(/[^\\w\\s]/g, '').replace(/\\s+/g, ' ').trim();\n    }\n}\n\n// Initialize the name manager\nconst nameManager = new NameCodeManager();\n\n// Process single form response (since we're in \"Run Once for Each Item\" mode)\nconst response = $json;\n\n// Clean data helper\nfunction cleanData(value, defaultValue = 'Not specified') {\n    if (!value || value.toString().trim() === '' || \n        value.toString().toLowerCase().includes('not recorded') ||\n        value.toString().toLowerCase().includes('not specified') ||\n        value.toString().toLowerCase().includes('none')) {\n        return defaultValue;\n    }\n    return value.toString().trim();\n}\n\n// Get original names\nconst originalStaffName = cleanData(response['Staff Full Name']);\nconst originalClientName = cleanData(response['Participant Full Name']);\n\n// Get codes and standardized names\nconst staffResult = nameManager.findStaffCode(originalStaffName);\nconst clientResult = nameManager.findClientCode(originalClientName);\n\n// Return enriched single response (no json wrapper needed in \"Each Item\" mode)\nreturn {\n    ...response,\n    // Add standardized data\n    staffCode: staffResult.code,\n    staffName: staffResult.primary,\n    clientCode: clientResult.code,\n    clientName: clientResult.primary,\n    // Keep original names for reference\n    originalStaffName: originalStaffName,\n    originalClientName: originalClientName,\n    // Add matching status\n    staffMatched: staffResult.matched,\n    clientMatched: clientResult.matched\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        576
+      ],
+      "id": "bec3a86d-bd83-4152-b7bc-b7a1aa1fb26e",
+      "name": "NameCodeManager",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        1744
+      ],
+      "id": "54513790-d61f-4bbb-b1bc-9e474f6cecfd",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        576
+      ],
+      "id": "27e845a3-aed3-487c-b95c-5e467acc1bdc",
+      "name": "Get row(s) in sheet1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n    Timestamp: new Date().toISOString(),\n    Action: \"Weekly Client Report Generated\",\n    Status: \"Success\",\n    Report_Week: \"Weekly Report Generated\",\n    Subject_Type: \"Client\",\n    Subject_Name: $json.clientName || 'Unknown Client',\n    Subject_Code: $json.clientCode || 'CT999',\n    Report_Type: \"Weekly Client Report\",\n    Report_Title: $json.title || 'Unknown Title',\n    File_Saved: \"Yes - Google Drive\",\n    Target_Folder_ID: $json.targetFolderId || 'Unknown',\n    Processing_Date: new Date().toLocaleDateString(),\n    Notes: \"Weekly client report generated and saved successfully\"\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        352
+      ],
+      "id": "64824749-b79c-46e7-8efb-c96cd9ab3f43",
+      "name": "Log Client Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n    Timestamp: new Date().toISOString(),\n    Action: \"Weekly Staff Report Generated\",\n    Status: \"Success\",\n    Report_Week: \"Weekly Report Generated\",\n    Subject_Type: \"Staff\",\n    Subject_Name: $json.staffName || 'Unknown Staff',\n    Subject_Code: $json.staffCode || 'STF999',\n    Report_Type: \"Weekly Staff Report\",\n    Report_Title: $json.title || 'Unknown Title',\n    File_Saved: \"Yes - Google Drive\",\n    Target_Folder_ID: $json.targetFolderId || 'Unknown',\n    Processing_Date: new Date().toLocaleDateString(),\n    Notes: \"Weekly staff report generated and saved successfully\"\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        688
+      ],
+      "id": "a7e00ebe-3ce9-4d18-9efc-957b03cd3dfe",
+      "name": "Log Staff Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "21992eb2-7d3f-4392-aefb-3992727b9308",
+      "name": "Get Roster Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        816
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        832,
+        720
+      ],
+      "id": "3de2ffcc-469e-4fb0-a58f-d3f4b1d7c0f0",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "client_reports",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "373d62fe-0b44-479d-8044-c6571d428845"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fad7505b-d2f0-4427-96f0-e9f6a9d723e9",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "staff_reports",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8a8403f9-93b9-4c0a-a67b-1388b494f9b9",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "ai_tasks",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "efa86d5a-e830-46b3-ad1e-606798499176",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "missing_forms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1552,
+        656
+      ],
+      "id": "76a88f16-8881-4c04-867b-241114ed241d",
+      "name": "Switch",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3328,
+        352
+      ],
+      "id": "3961d267-fb3d-4825-b824-0a77dccbabed",
+      "name": "Log Weekly Client Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3328,
+        688
+      ],
+      "id": "46bd2a88-3eaf-4bef-8806-aed3889bc437",
+      "name": "Log Weekly Staff Report",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Daily Task Generator and Logger ",
+        "height": 304,
+        "width": 1344,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1632
+      ],
+      "id": "6b21d007-b95b-41b0-a697-2805915df258",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Data Input and Processing",
+        "height": 496,
+        "width": 944,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        512
+      ],
+      "id": "434b99e9-4c34-429d-b078-37e422816de6",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Analysis & Routing",
+        "height": 368,
+        "width": 656,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        608
+      ],
+      "id": "d9f3b2e7-90a0-4b3c-8ff0-780bcddb1b60",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "# Multi Output Delivery",
+        "height": 1168,
+        "width": 1568
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        160
+      ],
+      "id": "fcd6d7e7-1db8-42e2-ab93-8252bb184feb",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Weekly Client Report Generator",
+        "height": 224,
+        "width": 1456,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        288
+      ],
+      "id": "17b8387a-0d8b-417b-80f1-31ca9d4f96ce",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## Weekly Staff Report Generator",
+        "height": 224,
+        "width": 1440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        640
+      ],
+      "id": "aefb624f-0681-4dc4-b497-b3f18c336004",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "## Weekly Task list Logging",
+        "height": 224,
+        "width": 528,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        1008
+      ],
+      "id": "5ca76a1d-3498-46aa-9720-56060adf506e",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "# Weekly Report & Task Generator and Logger",
+        "height": 1424,
+        "width": 3696,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "34a7a63b-f2fa-4744-950c-c46e90786558",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Complete Client Report Generator - Simple Blue/White Format - ALL DATA\nconst processedData = $input.first().json.processedData;\nconst clientReports = [];\n\n// Generate comprehensive reports for each client who had shifts this week\nObject.values(processedData.clientWeeklyData).forEach(client => {\n    if (client.totalShifts > 0) {\n        const report = generateComprehensiveClientReport(client, processedData.reportPeriod);\n        clientReports.push(report);\n    }\n});\n\nconsole.log(`Generated ${clientReports.length} comprehensive client reports`);\n\nreturn clientReports.map(report => ({\n    json: {\n        reportType: 'client_weekly',\n        clientCode: report.clientCode,\n        clientName: report.clientName,\n        title: report.filename,\n        htmlContent: report.htmlContent,\n        pdfRequestBody: {\n            source: report.htmlContent,\n            format: \"A4\",\n            margin: \"0.5cm\",\n            landscape: false\n        }\n    }\n}));\n\nfunction generateComprehensiveClientReport(client, reportPeriod) {\n    const reportDate = new Date().toLocaleDateString();\n    const reportTime = new Date().toLocaleTimeString();\n    \n    const htmlContent = `<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <style>\n        body { \n            font-family: Arial, sans-serif; \n            line-height: 1.4; \n            margin: 20px; \n            color: #333;\n        }\n        \n        .header {\n            text-align: center;\n            border-bottom: 3px solid #4A90E2;\n            padding-bottom: 15px;\n            margin-bottom: 20px;\n        }\n        \n        .header h1 {\n            color: #4A90E2;\n            font-size: 28px;\n            margin: 0;\n            font-weight: bold;\n        }\n        \n        .info-section {\n            margin-bottom: 25px;\n            background-color: #f8f9fa;\n            padding: 15px;\n            border-left: 4px solid #4A90E2;\n        }\n        \n        .info-row {\n            margin-bottom: 8px;\n            font-size: 14px;\n        }\n        \n        .label {\n            color: #4A90E2;\n            font-weight: bold;\n            display: inline-block;\n            width: 180px;\n        }\n        \n        table {\n            width: 100%;\n            border-collapse: collapse;\n            margin-bottom: 25px;\n        }\n        \n        th {\n            background-color: #4A90E2;\n            color: white;\n            padding: 12px 8px;\n            text-align: left;\n            font-weight: bold;\n            font-size: 14px;\n        }\n        \n        td {\n            padding: 8px;\n            border: 1px solid #ddd;\n            font-size: 13px;\n            vertical-align: top;\n        }\n        \n        tr:nth-child(even) {\n            background-color: #f9f9f9;\n        }\n        \n        .section-header {\n            background-color: #4A90E2;\n            color: white;\n            padding: 12px;\n            margin: 25px 0 10px 0;\n            font-weight: bold;\n            font-size: 16px;\n        }\n        \n        .metric-value {\n            font-weight: bold;\n            color: #2c3e50;\n        }\n        \n        .footer {\n            text-align: center;\n            margin-top: 30px;\n            font-size: 12px;\n            color: #666;\n            border-top: 2px solid #4A90E2;\n            padding-top: 15px;\n        }\n        \n        .data-table {\n            margin-bottom: 20px;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <h1>CLIENT WEEKLY REPORT</h1>\n    </div>\n    \n    <div class=\"info-section\">\n        <div class=\"info-row\">\n            <span class=\"label\">Client Name:</span> <span class=\"metric-value\">${client.clientName}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Client Code:</span> <span class=\"metric-value\">${client.clientCode}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Report Period:</span> <span class=\"metric-value\">${reportPeriod.startDate} - ${reportPeriod.endDate}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Total Shifts This Week:</span> <span class=\"metric-value\">${client.totalShifts}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Report Generated:</span> <span class=\"metric-value\">${reportDate} ${reportTime}</span>\n        </div>\n    </div>\n    \n    <!-- MEDICATION ADMINISTRATION SUMMARY - Only show if medications were administered -->\n    ${client.medicationCompliance.totalAdministrations > 0 ? `\n    <div class=\"section-header\">MEDICATION ADMINISTRATION</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Medication Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Total Administrations</td>\n            <td class=\"metric-value\">${client.medicationCompliance.totalAdministrations}</td>\n        </tr>\n        <tr>\n            <td>Scheduled Medications Given</td>\n            <td class=\"metric-value\">${client.medicationCompliance.scheduledGiven}</td>\n        </tr>\n        <tr>\n            <td>Missed Doses</td>\n            <td class=\"metric-value\">${client.medicationCompliance.missedDoses}</td>\n        </tr>\n        <tr>\n            <td>Overall Compliance Rate</td>\n            <td class=\"metric-value\">${client.medicationCompliance.complianceRate}%</td>\n        </tr>\n        <tr>\n            <td>PRN Medications Used</td>\n            <td class=\"metric-value\">${client.medicationCompliance.prnUsage.length}</td>\n        </tr>\n        <tr>\n            <td>Medication Issues Reported</td>\n            <td class=\"metric-value\">${client.medicationCompliance.issues.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- MEDICATION ISSUES DETAILS -->\n    ${client.medicationCompliance.issues.length > 0 ? `\n    <div class=\"section-header\">MEDICATION ISSUES REPORTED</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Issue Description</th>\n            <th>Medications Involved</th>\n            <th>Time</th>\n            <th>Method</th>\n        </tr>\n        ${client.medicationCompliance.issues.map(issue => `\n            <tr>\n                <td>${new Date(issue.date).toLocaleDateString()}</td>\n                <td>${issue.issue}</td>\n                <td>${issue.medications || 'Not specified'}</td>\n                <td>${issue.time || 'Not specified'}</td>\n                <td>${issue.method || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- PRN MEDICATIONS DETAILS -->\n    ${client.medicationCompliance.prnUsage.length > 0 ? `\n    <div class=\"section-header\">PRN MEDICATIONS ADMINISTERED</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Medication</th>\n            <th>Dose</th>\n            <th>Time Given</th>\n            <th>Reason</th>\n            <th>Outcome</th>\n        </tr>\n        ${client.medicationCompliance.prnUsage.map(prn => `\n            <tr>\n                <td>${new Date(prn.date).toLocaleDateString()}</td>\n                <td>${prn.medication}</td>\n                <td>${prn.dose || 'Not specified'}</td>\n                <td>${prn.timeGiven || 'Not specified'}</td>\n                <td>${prn.reason || 'Not specified'}</td>\n                <td>${prn.outcome || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- NUTRITION & INTAKE SUMMARY - Only show if there's nutrition data -->\n    ${(client.nutritionMetrics.adequateIntakeCount > 0 || client.nutritionMetrics.inadequateIntakeCount > 0) ? `\n    <div class=\"section-header\">NUTRITION & INTAKE</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Nutrition Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Adequate Intake Shifts</td>\n            <td class=\"metric-value\">${client.nutritionMetrics.adequateIntakeCount}</td>\n        </tr>\n        <tr>\n            <td>Inadequate Intake Shifts</td>\n            <td class=\"metric-value\">${client.nutritionMetrics.inadequateIntakeCount}</td>\n        </tr>\n        <tr>\n            <td>Nutrition Compliance Rate</td>\n            <td class=\"metric-value\">${client.nutritionMetrics.complianceRate}%</td>\n        </tr>\n        <tr>\n            <td>Nutrition Concerns Reported</td>\n            <td class=\"metric-value\">${client.nutritionMetrics.concerns.length}</td>\n        </tr>\n        <tr>\n            <td>Nutrition Improvements Noted</td>\n            <td class=\"metric-value\">${client.nutritionMetrics.improvements.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- NUTRITION CONCERNS DETAILS -->\n    ${client.nutritionMetrics.concerns.length > 0 ? `\n    <div class=\"section-header\">NUTRITION CONCERNS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Concern/Reason</th>\n            <th>Meal Details</th>\n            <th>Hydration Notes</th>\n        </tr>\n        ${client.nutritionMetrics.concerns.map(concern => `\n            <tr>\n                <td>${new Date(concern.date).toLocaleDateString()}</td>\n                <td>${concern.reason}</td>\n                <td>${concern.mealDetails || 'Not specified'}</td>\n                <td>${concern.hydration || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- SWALLOWING & SAFETY - Only show if there are safety issues -->\n    ${(client.swallowingAndSafety.swallowingDifficulties.length > 0 || client.swallowingAndSafety.chokingIncidents.length > 0 || client.swallowingAndSafety.safetyMeasures.length > 0) ? `\n    <div class=\"section-header\">SWALLOWING & SAFETY</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Safety Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Swallowing Difficulties</td>\n            <td class=\"metric-value\">${client.swallowingAndSafety.swallowingDifficulties.length}</td>\n        </tr>\n        <tr>\n            <td>Choking/Coughing Incidents</td>\n            <td class=\"metric-value\">${client.swallowingAndSafety.chokingIncidents.length}</td>\n        </tr>\n        <tr>\n            <td>Safety Measures Implemented</td>\n            <td class=\"metric-value\">${client.swallowingAndSafety.safetyMeasures.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- SWALLOWING DIFFICULTIES DETAILS -->\n    ${client.swallowingAndSafety.swallowingDifficulties.length > 0 ? `\n    <div class=\"section-header\">SWALLOWING DIFFICULTIES</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Description</th>\n        </tr>\n        ${client.swallowingAndSafety.swallowingDifficulties.map(difficulty => `\n            <tr>\n                <td>${new Date(difficulty.date).toLocaleDateString()}</td>\n                <td>${difficulty.description}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- CHOKING INCIDENTS DETAILS -->\n    ${client.swallowingAndSafety.chokingIncidents.length > 0 ? `\n    <div class=\"section-header\">CHOKING/COUGHING INCIDENTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Description</th>\n        </tr>\n        ${client.swallowingAndSafety.chokingIncidents.map(incident => `\n            <tr>\n                <td>${new Date(incident.date).toLocaleDateString()}</td>\n                <td>${incident.description}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- BEHAVIORAL OBSERVATIONS - Only show if there are observations -->\n    ${(client.behavioralObservations.moodPatterns.length > 0 || client.behavioralObservations.participationLevels.length > 0 || client.behavioralObservations.socialInteractions.length > 0 || client.behavioralObservations.healthConcerns.length > 0) ? `\n    <div class=\"section-header\">BEHAVIORAL OBSERVATIONS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Observation Type</th>\n            <th style=\"width: 60%\">Count/Details</th>\n        </tr>\n        <tr>\n            <td>Mood Pattern Observations</td>\n            <td class=\"metric-value\">${client.behavioralObservations.moodPatterns.length}</td>\n        </tr>\n        <tr>\n            <td>Participation Level Notes</td>\n            <td class=\"metric-value\">${client.behavioralObservations.participationLevels.length}</td>\n        </tr>\n        <tr>\n            <td>Social Interaction Notes</td>\n            <td class=\"metric-value\">${client.behavioralObservations.socialInteractions.length}</td>\n        </tr>\n        <tr>\n            <td>Health Concerns Noted</td>\n            <td class=\"metric-value\">${client.behavioralObservations.healthConcerns.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- MOOD PATTERNS DETAILS -->\n    ${client.behavioralObservations.moodPatterns.length > 0 ? `\n    <div class=\"section-header\">MOOD & BEHAVIOR OBSERVATIONS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Observation</th>\n        </tr>\n        ${client.behavioralObservations.moodPatterns.map(pattern => `\n            <tr>\n                <td>${new Date(pattern.date).toLocaleDateString()}</td>\n                <td>${pattern.observation}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- HEALTH CONCERNS DETAILS -->\n    ${client.behavioralObservations.healthConcerns.length > 0 ? `\n    <div class=\"section-header\">HEALTH CONCERNS NOTED</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Concern</th>\n        </tr>\n        ${client.behavioralObservations.healthConcerns.map(concern => `\n            <tr>\n                <td>${new Date(concern.date).toLocaleDateString()}</td>\n                <td>${concern.concern}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- SAFETY INCIDENTS - Only show if there were incidents -->\n    ${client.incidentSummary.totalIncidents > 0 ? `\n    <div class=\"section-header\">SAFETY INCIDENTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Incident Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Total Incidents This Week</td>\n            <td class=\"metric-value\">${client.incidentSummary.totalIncidents}</td>\n        </tr>\n        <tr>\n            <td>Incident Details Recorded</td>\n            <td class=\"metric-value\">${client.incidentSummary.incidentDetails.length}</td>\n        </tr>\n        <tr>\n            <td>Resolutions Implemented</td>\n            <td class=\"metric-value\">${client.incidentSummary.resolutions.length}</td>\n        </tr>\n        <tr>\n            <td>Preventive Measures</td>\n            <td class=\"metric-value\">${client.incidentSummary.preventiveMeasures.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- INCIDENT DETAILS -->\n    ${client.incidentSummary.incidentDetails.length > 0 ? `\n    <div class=\"section-header\">DETAILED INCIDENT REPORTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date/Time</th>\n            <th>Location</th>\n            <th>Description</th>\n            <th>People Involved</th>\n            <th>Actions Taken</th>\n            <th>Outcome</th>\n        </tr>\n        ${client.incidentSummary.incidentDetails.map(incident => `\n            <tr>\n                <td>${incident.dateTime ? new Date(incident.dateTime).toLocaleDateString() : 'Not specified'}</td>\n                <td>${incident.location || 'Not specified'}</td>\n                <td>${incident.description || 'Not specified'}</td>\n                <td>${incident.peopleInvolved || 'Not specified'}</td>\n                <td>${incident.actionsTaken || 'Not specified'}</td>\n                <td>${incident.outcome || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- APPOINTMENTS & ACTIVITIES - Only show if there are activities or appointments -->\n    ${(client.appointmentsAndActivities.appointmentsScheduled > 0 || client.appointmentsAndActivities.communityParticipation > 0 || client.appointmentsAndActivities.communityDetails.length > 0 || client.appointmentsAndActivities.activitiesCompleted.length > 0) ? `\n    <div class=\"section-header\">APPOINTMENTS & ACTIVITIES</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Activity Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Appointments Scheduled</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.appointmentsScheduled}</td>\n        </tr>\n        <tr>\n            <td>Appointments Attended</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.appointmentsAttended}</td>\n        </tr>\n        <tr>\n            <td>Community Participation Count</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.communityParticipation}</td>\n        </tr>\n        <tr>\n            <td>Community Participation Rate</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.participationRate || 0}%</td>\n        </tr>\n        <tr>\n            <td>Community Concerns/Issues</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.communityDetails.length}</td>\n        </tr>\n        <tr>\n            <td>Activities Completed</td>\n            <td class=\"metric-value\">${client.appointmentsAndActivities.activitiesCompleted.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- APPOINTMENT DETAILS -->\n    ${client.appointmentsAndActivities.appointmentDetails.length > 0 ? `\n    <div class=\"section-header\">APPOINTMENT DETAILS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Type</th>\n            <th>Professional</th>\n            <th>Clinic</th>\n            <th>Purpose</th>\n            <th>Summary</th>\n            <th>Follow-up Actions</th>\n        </tr>\n        ${client.appointmentsAndActivities.appointmentDetails.map(appointment => `\n            <tr>\n                <td>${new Date(appointment.date).toLocaleDateString()}</td>\n                <td>${appointment.type || 'Not specified'}</td>\n                <td>${appointment.professionalName || 'Not specified'}</td>\n                <td>${appointment.clinicName || 'Not specified'}</td>\n                <td>${appointment.purpose || 'Not specified'}</td>\n                <td>${appointment.summary || 'Not specified'}</td>\n                <td>${appointment.followUpActions || 'None specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- COMMUNITY PARTICIPATION DETAILS -->\n    ${client.appointmentsAndActivities.communityDetails.length > 0 ? `\n    <div class=\"section-header\">COMMUNITY PARTICIPATION DETAILS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Participated</th>\n            <th>Reason (if no)</th>\n            <th>Response</th>\n            <th>Engagement Level</th>\n            <th>Barriers</th>\n        </tr>\n        ${client.appointmentsAndActivities.communityDetails.map(detail => `\n            <tr>\n                <td>${new Date(detail.date).toLocaleDateString()}</td>\n                <td>${detail.participated !== false ? 'Yes' : 'No'}</td>\n                <td>${detail.reason || 'N/A'}</td>\n                <td>${detail.response || 'Not specified'}</td>\n                <td>${detail.engagement || 'Not specified'}</td>\n                <td>${detail.barriers || 'None reported'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- CARE QUALITY INDICATORS - Only show if there are quality records -->\n    ${(client.careQualityIndicators.handoverQuality.length > 0 || client.careQualityIndicators.documentationComplete > 0 || client.careQualityIndicators.familyCommunication.length > 0 || client.careQualityIndicators.goalProgress.length > 0) ? `\n    <div class=\"section-header\">CARE QUALITY INDICATORS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Quality Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Handover Quality Records</td>\n            <td class=\"metric-value\">${client.careQualityIndicators.handoverQuality.length}</td>\n        </tr>\n        <tr>\n            <td>Documentation Completeness</td>\n            <td class=\"metric-value\">${client.careQualityIndicators.documentationComplete}</td>\n        </tr>\n        <tr>\n            <td>Family Communication Records</td>\n            <td class=\"metric-value\">${client.careQualityIndicators.familyCommunication.length}</td>\n        </tr>\n        <tr>\n            <td>Goal Progress Records</td>\n            <td class=\"metric-value\">${client.careQualityIndicators.goalProgress.length}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- WEEKLY SHIFT SUMMARY - Only show if there are valid shift details -->\n    ${client.shiftDetails && client.shiftDetails.length > 0 && client.shiftDetails.some(shift => shift.timestamp && shift.staffMember) ? `\n    <div class=\"section-header\">WEEKLY SHIFT SUMMARY</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Staff Member</th>\n            <th>Location</th>\n            <th>Sign In</th>\n            <th>Sign Out</th>\n            <th>Activities</th>\n            <th>Behavior Notes</th>\n        </tr>\n        ${client.shiftDetails.filter(shift => shift.timestamp && shift.staffMember).map(shift => {\n            // Safe date parsing\n            let displayDate = 'Invalid Date';\n            try {\n                if (shift.timestamp) {\n                    const date = new Date(shift.timestamp);\n                    if (!isNaN(date.getTime())) {\n                        displayDate = date.toLocaleDateString();\n                    }\n                }\n            } catch (e) {\n                displayDate = 'Invalid Date';\n            }\n            \n            return `\n            <tr>\n                <td>${displayDate}</td>\n                <td>${shift.staffMember || 'Not specified'}</td>\n                <td>${shift.location || 'Not specified'}</td>\n                <td>${shift.signIn || 'Not recorded'}</td>\n                <td>${shift.signOut || 'Not recorded'}</td>\n                <td>${shift.activities || shift.dailyActivities || 'Not specified'}</td>\n                <td>${shift.behavior || 'None noted'}</td>\n            </tr>`;\n        }).join('')}\n    </table>` : ''}\n    \n    <!-- WEEKLY INSIGHTS & RECOMMENDATIONS -->\n    <div class=\"section-header\">WEEKLY INSIGHTS & RECOMMENDATIONS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 30%\">Area</th>\n            <th style=\"width: 70%\">Details</th>\n        </tr>\n        <tr>\n            <td>Strengths Identified</td>\n            <td>${client.weeklyInsights.strengths.length > 0 ? client.weeklyInsights.strengths.join('; ') : 'Standard care maintained'}</td>\n        </tr>\n        <tr>\n            <td>Concerns Noted</td>\n            <td>${client.weeklyInsights.concerns.length > 0 ? client.weeklyInsights.concerns.map(c => typeof c === 'object' ? c.description : c).join('; ') : 'No significant concerns'}</td>\n        </tr>\n        <tr>\n            <td>Recommendations</td>\n            <td>${client.weeklyInsights.recommendations.length > 0 ? client.weeklyInsights.recommendations.join('; ') : 'Continue current care plan'}</td>\n        </tr>\n        <tr>\n            <td>Priority Actions</td>\n            <td>${client.weeklyInsights.priorityActions.length > 0 ? client.weeklyInsights.priorityActions.join('; ') : 'No priority actions required'}</td>\n        </tr>\n    </table>\n    \n    <div class=\"footer\">\n        <strong>Client Weekly Report</strong><br>\n        ${client.clientName} (${client.clientCode})<br>\n        Generated: ${reportDate} ${reportTime}<br>\n        Period: ${reportPeriod.startDate} - ${reportPeriod.endDate}\n    </div>\n</body>\n</html>`;\n\n    return {\n        clientCode: client.clientCode,\n        clientName: client.clientName,\n        filename: `${client.clientCode}_${client.clientName.replace(/\\s+/g, '_')}_Weekly_Report_${reportPeriod.startDate.replace(/\\//g, '-')}`,\n        htmlContent: htmlContent\n    };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        352
+      ],
+      "id": "90bbd7af-23d3-4e1e-8392-eb8b55d5b296",
+      "name": "Weekly Client Report Generator",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Complete Staff Report Generator - Simple Blue/White Format - ALL DATA\nconst processedData = $input.first().json.processedData;\nconst staffReports = [];\n\n// Generate comprehensive reports for each staff member who worked this week\nObject.values(processedData.staffWeeklyData).forEach(staff => {\n    if (staff.totalShifts > 0) {\n        const report = generateComprehensiveStaffReport(staff, processedData.reportPeriod);\n        staffReports.push(report);\n    }\n});\n\nconsole.log(`Generated ${staffReports.length} comprehensive staff reports`);\n\nreturn staffReports.map(report => ({\n    json: {\n        reportType: 'staff_weekly',\n        staffCode: report.staffCode,\n        staffName: report.staffName,\n        title: report.filename,\n        htmlContent: report.htmlContent,\n        pdfRequestBody: {\n            source: report.htmlContent,\n            format: \"A4\",\n            margin: \"0.5cm\",\n            landscape: false\n        }\n    }\n}));\n\nfunction generateComprehensiveStaffReport(staff, reportPeriod) {\n    const reportDate = new Date().toLocaleDateString();\n    const reportTime = new Date().toLocaleTimeString();\n    \n    const htmlContent = `<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <style>\n        body { \n            font-family: Arial, sans-serif; \n            line-height: 1.4; \n            margin: 20px; \n            color: #333;\n        }\n        \n        .header {\n            text-align: center;\n            border-bottom: 3px solid #6A4C93;\n            padding-bottom: 15px;\n            margin-bottom: 20px;\n        }\n        \n        .header h1 {\n            color: #6A4C93;\n            font-size: 28px;\n            margin: 0;\n            font-weight: bold;\n        }\n        \n        .info-section {\n            margin-bottom: 25px;\n            background-color: #f8f9fa;\n            padding: 15px;\n            border-left: 4px solid #6A4C93;\n        }\n        \n        .info-row {\n            margin-bottom: 8px;\n            font-size: 14px;\n        }\n        \n        .label {\n            color: #6A4C93;\n            font-weight: bold;\n            display: inline-block;\n            width: 180px;\n        }\n        \n        table {\n            width: 100%;\n            border-collapse: collapse;\n            margin-bottom: 25px;\n        }\n        \n        th {\n            background-color: #6A4C93;\n            color: white;\n            padding: 12px 8px;\n            text-align: left;\n            font-weight: bold;\n            font-size: 14px;\n        }\n        \n        td {\n            padding: 8px;\n            border: 1px solid #ddd;\n            font-size: 13px;\n            vertical-align: top;\n        }\n        \n        tr:nth-child(even) {\n            background-color: #f9f9f9;\n        }\n        \n        .section-header {\n            background-color: #6A4C93;\n            color: white;\n            padding: 12px;\n            margin: 25px 0 10px 0;\n            font-weight: bold;\n            font-size: 16px;\n        }\n        \n        .metric-value {\n            font-weight: bold;\n            color: #2c3e50;\n        }\n        \n        .footer {\n            text-align: center;\n            margin-top: 30px;\n            font-size: 12px;\n            color: #666;\n            border-top: 2px solid #6A4C93;\n            padding-top: 15px;\n        }\n        \n        .data-table {\n            margin-bottom: 20px;\n        }\n        \n        .client-list {\n            list-style: none;\n            padding: 0;\n        }\n        \n        .client-list li {\n            padding: 5px 0;\n            border-bottom: 1px solid #eee;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <h1>STAFF WEEKLY REPORT</h1>\n    </div>\n    \n    <div class=\"info-section\">\n        <div class=\"info-row\">\n            <span class=\"label\">Staff Name:</span> <span class=\"metric-value\">${staff.staffName}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Staff Code:</span> <span class=\"metric-value\">${staff.staffCode}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Report Period:</span> <span class=\"metric-value\">${reportPeriod.startDate} - ${reportPeriod.endDate}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Shifts Completed:</span> <span class=\"metric-value\">${staff.totalShifts}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Clients Supported:</span> <span class=\"metric-value\">${staff.clientsWorkedWith.length}</span>\n        </div>\n        <div class=\"info-row\">\n            <span class=\"label\">Report Generated:</span> <span class=\"metric-value\">${reportDate} ${reportTime}</span>\n        </div>\n    </div>\n    \n    <!-- PERFORMANCE METRICS OVERVIEW - Only show if there are performance metrics -->\n    ${(staff.weeklyPerformance.overallRating > 0 || staff.performanceMetrics.documentationQuality.length > 0 || staff.performanceMetrics.incidentHandling.length > 0 || staff.performanceMetrics.communicationEffectiveness.length > 0 || staff.clientCareQuality.medicationManagement > 0) ? `\n    <div class=\"section-header\">PERFORMANCE METRICS OVERVIEW</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Performance Metric</th>\n            <th style=\"width: 60%\">Rating/Details</th>\n        </tr>\n        <tr>\n            <td>Overall Performance Rating</td>\n            <td class=\"metric-value\">${staff.weeklyPerformance.overallRating}%</td>\n        </tr>\n        <tr>\n            <td>Shift Completion Rate</td>\n            <td class=\"metric-value\">${staff.performanceMetrics.shiftCompletionRate}%</td>\n        </tr>\n        ${staff.performanceMetrics.medicationAdministrationAccuracy > 0 ? `\n        <tr>\n            <td>Medication Administration Accuracy</td>\n            <td class=\"metric-value\">${staff.performanceMetrics.medicationAdministrationAccuracy}</td>\n        </tr>` : ''}\n        ${staff.performanceMetrics.documentationQuality.length > 0 ? `\n        <tr>\n            <td>Documentation Quality Records</td>\n            <td class=\"metric-value\">${staff.performanceMetrics.documentationQuality.length}</td>\n        </tr>` : ''}\n        ${staff.performanceMetrics.incidentHandling.length > 0 ? `\n        <tr>\n            <td>Incident Handling Records</td>\n            <td class=\"metric-value\">${staff.performanceMetrics.incidentHandling.length}</td>\n        </tr>` : ''}\n        ${staff.performanceMetrics.communicationEffectiveness.length > 0 ? `\n        <tr>\n            <td>Communication Effectiveness Records</td>\n            <td class=\"metric-value\">${staff.performanceMetrics.communicationEffectiveness.length}</td>\n        </tr>` : ''}\n    </table>` : ''}\n    \n    <!-- CLIENT CARE QUALITY - Only show if there are care quality metrics -->\n    ${(staff.clientCareQuality.medicationManagement > 0 || staff.clientCareQuality.nutritionSupport > 0 || staff.clientCareQuality.safetyProtocols > 0 || staff.clientCareQuality.emergencyResponse.length > 0 || staff.clientCareQuality.proactiveActions.length > 0) ? `\n    <div class=\"section-header\">CLIENT CARE QUALITY</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Care Quality Area</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        ${staff.clientCareQuality.medicationManagement > 0 ? `\n        <tr>\n            <td>Medication Management Competency</td>\n            <td class=\"metric-value\">${staff.clientCareQuality.medicationManagement}</td>\n        </tr>` : ''}\n        ${staff.clientCareQuality.nutritionSupport > 0 ? `\n        <tr>\n            <td>Nutrition Support Provided</td>\n            <td class=\"metric-value\">${staff.clientCareQuality.nutritionSupport}</td>\n        </tr>` : ''}\n        ${staff.clientCareQuality.safetyProtocols > 0 ? `\n        <tr>\n            <td>Safety Protocols Followed</td>\n            <td class=\"metric-value\">${staff.clientCareQuality.safetyProtocols}</td>\n        </tr>` : ''}\n        ${staff.clientCareQuality.emergencyResponse.length > 0 ? `\n        <tr>\n            <td>Emergency Response Actions</td>\n            <td class=\"metric-value\">${staff.clientCareQuality.emergencyResponse.length}</td>\n        </tr>` : ''}\n        ${staff.clientCareQuality.proactiveActions.length > 0 ? `\n        <tr>\n            <td>Proactive Actions Taken</td>\n            <td class=\"metric-value\">${staff.clientCareQuality.proactiveActions.length}</td>\n        </tr>` : ''}\n    </table>` : ''}\n    \n    <!-- CLIENT ASSIGNMENTS & WORKLOAD -->\n    <div class=\"section-header\">CLIENT ASSIGNMENTS & WORKLOAD</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 30%\">Client Name</th>\n            <th style=\"width: 70%\">Care Quality & Notes</th>\n        </tr>\n        ${staff.clientsWorkedWith.map(client => `\n            <tr>\n                <td>${client}</td>\n                <td>Professional care delivery maintained throughout the week</td>\n            </tr>\n        `).join('')}\n    </table>\n    \n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Workload Assessment</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Total Clients This Week</td>\n            <td class=\"metric-value\">${staff.clientsWorkedWith.length}</td>\n        </tr>\n        <tr>\n            <td>Workload Level</td>\n            <td class=\"metric-value\">${getWorkloadAssessment(staff)}</td>\n        </tr>\n        <tr>\n            <td>Workload Assessment Status</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.workloadAssessment}</td>\n        </tr>\n    </table>\n    \n    <!-- PROFESSIONAL DEVELOPMENT - Only show if there are development metrics -->\n    ${(staff.professionalDevelopment.trainingNeeds.length > 0 || staff.professionalDevelopment.skillsIdentified.length > 0 || staff.professionalDevelopment.strengthsObserved.length > 0 || staff.professionalDevelopment.improvementAreas.length > 0 || staff.professionalDevelopment.developmentGoals.length > 0) ? `\n    <div class=\"section-header\">PROFESSIONAL DEVELOPMENT</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Development Area</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        <tr>\n            <td>Training Needs Identified</td>\n            <td class=\"metric-value\">${staff.professionalDevelopment.trainingNeeds.length}</td>\n        </tr>\n        ${staff.professionalDevelopment.skillsIdentified.length > 0 ? `\n        <tr>\n            <td>Skills Identified</td>\n            <td class=\"metric-value\">${staff.professionalDevelopment.skillsIdentified.length}</td>\n        </tr>` : ''}\n        ${staff.professionalDevelopment.strengthsObserved.length > 0 ? `\n        <tr>\n            <td>Strengths Observed</td>\n            <td class=\"metric-value\">${staff.professionalDevelopment.strengthsObserved.length}</td>\n        </tr>` : ''}\n        ${staff.professionalDevelopment.improvementAreas.length > 0 ? `\n        <tr>\n            <td>Improvement Areas</td>\n            <td class=\"metric-value\">${staff.professionalDevelopment.improvementAreas.length}</td>\n        </tr>` : ''}\n        ${staff.professionalDevelopment.developmentGoals.length > 0 ? `\n        <tr>\n            <td>Development Goals</td>\n            <td class=\"metric-value\">${staff.professionalDevelopment.developmentGoals.length}</td>\n        </tr>` : ''}\n    </table>` : ''}\n    \n    <!-- TRAINING NEEDS DETAILS -->\n    ${staff.professionalDevelopment.trainingNeeds.length > 0 ? `\n    <div class=\"section-header\">TRAINING NEEDS DETAILS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date Identified</th>\n            <th>Training Areas</th>\n            <th>Support Type Required</th>\n        </tr>\n        ${staff.professionalDevelopment.trainingNeeds.map(need => `\n            <tr>\n                <td>${new Date(need.date).toLocaleDateString()}</td>\n                <td>${need.areas || 'Not specified'}</td>\n                <td>${need.supportType || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- WELLBEING & SUPPORT - Only show if there are wellbeing metrics -->\n    ${(staff.wellbeingAndSupport.shiftDifficultyRatings.length > 0 || staff.wellbeingAndSupport.concernsRaised.length > 0 || staff.wellbeingAndSupport.supportRequested.length > 0 || staff.wellbeingAndSupport.followUpNeeded.length > 0) ? `\n    <div class=\"section-header\">WELLBEING & SUPPORT</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Wellbeing Metric</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        ${staff.wellbeingAndSupport.shiftDifficultyRatings.length > 0 ? `\n        <tr>\n            <td>Shift Difficulty Ratings</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.shiftDifficultyRatings.length}</td>\n        </tr>` : ''}\n        ${staff.wellbeingAndSupport.concernsRaised.length > 0 ? `\n        <tr>\n            <td>Concerns Raised</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.concernsRaised.length}</td>\n        </tr>` : ''}\n        ${staff.wellbeingAndSupport.supportRequested.length > 0 ? `\n        <tr>\n            <td>Support Requests</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.supportRequested.length}</td>\n        </tr>` : ''}\n        ${staff.wellbeingAndSupport.followUpNeeded.length > 0 ? `\n        <tr>\n            <td>Follow-up Needed</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.followUpNeeded.length}</td>\n        </tr>` : ''}\n        <tr>\n            <td>Workload Assessment</td>\n            <td class=\"metric-value\">${staff.wellbeingAndSupport.workloadAssessment}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- SHIFT DIFFICULTY RATINGS -->\n    ${staff.wellbeingAndSupport.shiftDifficultyRatings.length > 0 ? `\n    <div class=\"section-header\">SHIFT PERFORMANCE RATINGS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Shift Number</th>\n            <th>Difficulty Rating</th>\n            <th>Performance Assessment</th>\n        </tr>\n        ${staff.wellbeingAndSupport.shiftDifficultyRatings.map((rating, index) => `\n            <tr>\n                <td>Shift ${index + 1}</td>\n                <td class=\"metric-value\">${rating}</td>\n                <td>${getShiftAssessment(rating)}</td>\n            </tr>\n        `).join('')}\n    </table>\n    \n    <table class=\"data-table\">\n        <tr>\n            <th>Shift Performance Analysis</th>\n        </tr>\n        <tr>\n            <td>${analyzeShiftPerformance(staff.wellbeingAndSupport.shiftDifficultyRatings)}</td>\n        </tr>\n    </table>` : ''}\n    \n    <!-- CONCERNS RAISED DETAILS -->\n    ${staff.wellbeingAndSupport.concernsRaised.length > 0 ? `\n    <div class=\"section-header\">CONCERNS & ISSUES REPORTED</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Concern Type</th>\n            <th>Details</th>\n            <th>Follow-up Required</th>\n            <th>Management Notified</th>\n        </tr>\n        ${staff.wellbeingAndSupport.concernsRaised.map(concern => `\n            <tr>\n                <td>${new Date(concern.date).toLocaleDateString()}</td>\n                <td class=\"metric-value\">${concern.type === 'shift_difficulty' ? 'Shift Difficulty' : \n                                          concern.type === 'general_concern' ? 'General Concern' : \n                                          concern.type === 'irc' ? concern.ircType : 'Concern'}</td>\n                <td>${concern.explanation || concern.description || concern.details || 'Not specified'}</td>\n                <td class=\"metric-value\">${concern.followUpRequested === 'Yes' ? 'Yes' : 'No'}</td>\n                <td>${concern.managementNotice || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- SUPPORT REQUESTS DETAILS -->\n    ${staff.wellbeingAndSupport.supportRequested.length > 0 ? `\n    <div class=\"section-header\">SUPPORT REQUESTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Support Type</th>\n            <th>Request Details</th>\n        </tr>\n        ${staff.wellbeingAndSupport.supportRequested.map(support => `\n            <tr>\n                <td>${new Date(support.date).toLocaleDateString()}</td>\n                <td class=\"metric-value\">${support.type || 'General Support'}</td>\n                <td>${support.support}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- TEAM COLLABORATION - Only show if there are collaboration metrics -->\n    ${(staff.teamCollaboration.handoverQuality.length > 0 || staff.teamCollaboration.communicationWithTeam.length > 0 || staff.teamCollaboration.mentorshipActivities.length > 0 || staff.teamCollaboration.conflictResolution.length > 0) ? `\n    <div class=\"section-header\">TEAM COLLABORATION</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Collaboration Area</th>\n            <th style=\"width: 60%\">Details</th>\n        </tr>\n        ${staff.teamCollaboration.handoverQuality.length > 0 ? `\n        <tr>\n            <td>Handover Quality Records</td>\n            <td class=\"metric-value\">${staff.teamCollaboration.handoverQuality.length}</td>\n        </tr>` : ''}\n        ${staff.teamCollaboration.communicationWithTeam.length > 0 ? `\n        <tr>\n            <td>Team Communication Records</td>\n            <td class=\"metric-value\">${staff.teamCollaboration.communicationWithTeam.length}</td>\n        </tr>` : ''}\n        ${staff.teamCollaboration.mentorshipActivities.length > 0 ? `\n        <tr>\n            <td>Mentorship Activities</td>\n            <td class=\"metric-value\">${staff.teamCollaboration.mentorshipActivities.length}</td>\n        </tr>` : ''}\n        ${staff.teamCollaboration.conflictResolution.length > 0 ? `\n        <tr>\n            <td>Conflict Resolution</td>\n            <td class=\"metric-value\">${staff.teamCollaboration.conflictResolution.length}</td>\n        </tr>` : ''}\n    </table>` : ''}\n    \n    <!-- TEAM COLLABORATION DETAILS -->\n    ${staff.teamCollaboration.communicationWithTeam.length > 0 ? `\n    <div class=\"section-header\">TEAM COMMUNICATION & FEEDBACK</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Positive Aspects</th>\n            <th>Team Recognition</th>\n            <th>Improvement Suggestions</th>\n        </tr>\n        ${staff.teamCollaboration.communicationWithTeam.map(collab => `\n            <tr>\n                <td>${new Date(collab.date).toLocaleDateString()}</td>\n                <td>${collab.positiveAspects || 'Not specified'}</td>\n                <td>${collab.teamRecognition || 'Not specified'}</td>\n                <td>${collab.improvementSuggestions || 'None provided'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- HANDOVER QUALITY -->\n    ${staff.teamCollaboration.handoverQuality.length > 0 ? `\n    <div class=\"section-header\">HANDOVER QUALITY</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Date</th>\n            <th>Handover From</th>\n            <th>Handover To</th>\n        </tr>\n        ${staff.teamCollaboration.handoverQuality.map(handover => `\n            <tr>\n                <td>${new Date(handover.date).toLocaleDateString()}</td>\n                <td>${handover.from || 'Not specified'}</td>\n                <td>${handover.to || 'Not specified'}</td>\n            </tr>\n        `).join('')}\n    </table>` : ''}\n    \n    <!-- WEEKLY PERFORMANCE SUMMARY -->\n    <div class=\"section-header\">WEEKLY PERFORMANCE SUMMARY</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 40%\">Performance Area</th>\n            <th style=\"width: 60%\">Assessment</th>\n        </tr>\n        <tr>\n            <td>Overall Performance Rating</td>\n            <td class=\"metric-value\">${staff.weeklyPerformance.overallRating}%</td>\n        </tr>\n        <tr>\n            <td>Client Care Quality Score</td>\n            <td class=\"metric-value\">${calculateCareQualityScore(staff)}%</td>\n        </tr>\n        <tr>\n            <td>Professional Reliability Score</td>\n            <td class=\"metric-value\">${calculateReliabilityScore(staff)}%</td>\n        </tr>\n        <tr>\n            <td>Workload Management</td>\n            <td class=\"metric-value\">${getWorkloadAssessment(staff)}</td>\n        </tr>\n    </table>\n    \n    <!-- KEY STRENGTHS -->\n    <div class=\"section-header\">KEY STRENGTHS & ACHIEVEMENTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Strength/Achievement</th>\n        </tr>\n        ${generateStaffStrengths(staff).map(strength => `\n            <tr>\n                <td>${strength}</td>\n            </tr>\n        `).join('')}\n    </table>\n    \n    <!-- DEVELOPMENT PRIORITIES -->\n    <div class=\"section-header\">DEVELOPMENT PRIORITIES & RECOMMENDATIONS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th>Priority</th>\n            <th>Recommendation</th>\n        </tr>\n        ${generateDevelopmentRecommendations(staff).map((rec, index) => `\n            <tr>\n                <td>Priority ${index + 1}</td>\n                <td>${rec}</td>\n            </tr>\n        `).join('')}\n    </table>\n    \n    <!-- PERFORMANCE INSIGHTS -->\n    <div class=\"section-header\">PERFORMANCE INSIGHTS</div>\n    <table class=\"data-table\">\n        <tr>\n            <th style=\"width: 30%\">Insight Area</th>\n            <th style=\"width: 70%\">Details</th>\n        </tr>\n        <tr>\n            <td>Key Strengths</td>\n            <td>${staff.weeklyPerformance.keyStrengths.length > 0 ? staff.weeklyPerformance.keyStrengths.join('; ') : 'Professional standards maintained'}</td>\n        </tr>\n        <tr>\n            <td>Development Priorities</td>\n            <td>${staff.weeklyPerformance.developmentPriorities.length > 0 ? staff.weeklyPerformance.developmentPriorities.join('; ') : 'Continue current development path'}</td>\n        </tr>\n        <tr>\n            <td>Support Recommendations</td>\n            <td>${staff.weeklyPerformance.supportRecommendations.length > 0 ? staff.weeklyPerformance.supportRecommendations.join('; ') : 'Current support level adequate'}</td>\n        </tr>\n    </table>\n    \n    <div class=\"footer\">\n        <strong>Staff Weekly Report</strong><br>\n        ${staff.staffName} (${staff.staffCode})<br>\n        Generated: ${reportDate} ${reportTime}<br>\n        Period: ${reportPeriod.startDate} - ${reportPeriod.endDate}\n    </div>\n</body>\n</html>`;\n\n    return {\n        staffCode: staff.staffCode,\n        staffName: staff.staffName,\n        filename: `${staff.staffCode}_${staff.staffName.replace(/\\s+/g, '_')}_Weekly_Report_${reportPeriod.startDate.replace(/\\//g, '-')}`,\n        htmlContent: htmlContent\n    };\n}\n\n// Helper functions matching the original automation\nfunction calculateCareQualityScore(staff) {\n    let score = 85; // Base score\n    \n    if (staff.clientCareQuality.medicationManagement > 0) score += 10;\n    if (staff.performanceMetrics.incidentHandling.length > 0) score += 5;\n    if (staff.wellbeingAndSupport.concernsRaised.some(c => c.type === 'general_concern')) score -= 5;\n    \n    return Math.min(100, Math.max(60, score));\n}\n\nfunction calculateReliabilityScore(staff) {\n    let score = 90; // Base score\n    \n    if (staff.totalShifts >= 5) score += 5;\n    if (staff.professionalDevelopment.trainingNeeds.length === 0) score += 5;\n    if (staff.wellbeingAndSupport.concernsRaised.length > 2) score -= 10;\n    \n    return Math.min(100, Math.max(70, score));\n}\n\nfunction getWorkloadAssessment(staff) {\n    if (staff.clientsWorkedWith.length > 6) return 'High';\n    if (staff.clientsWorkedWith.length > 3) return 'Moderate';\n    return 'Light';\n}\n\nfunction getShiftAssessment(rating) {\n    const lowerRating = rating.toLowerCase();\n    if (lowerRating.includes('excellent')) return 'Outstanding performance';\n    if (lowerRating.includes('very good')) return 'Above average performance';\n    if (lowerRating.includes('good')) return 'Standard performance';\n    if (lowerRating.includes('challenging')) return 'Managed challenges well';\n    if (lowerRating.includes('difficult')) return 'Requires support and follow-up';\n    return 'Standard performance maintained';\n}\n\nfunction generateStaffStrengths(staff) {\n    const strengths = [];\n    \n    strengths.push(`Successfully completed ${staff.totalShifts} shifts with professional standards`);\n    strengths.push(`Provided quality care to ${staff.clientsWorkedWith.length} different clients`);\n    \n    if (staff.clientCareQuality.medicationManagement > 0) {\n        strengths.push('Demonstrated competency in medication administration and management');\n    }\n    \n    if (staff.performanceMetrics.incidentHandling.length > 0) {\n        strengths.push('Effective crisis management and incident response capabilities');\n    }\n    \n    if (staff.wellbeingAndSupport.concernsRaised.some(c => c.type === 'general_concern')) {\n        strengths.push('Proactive communication and transparency in reporting concerns');\n    }\n    \n    if (staff.professionalDevelopment.trainingNeeds.length > 0) {\n        strengths.push('Self-awareness and commitment to continuous professional development');\n    }\n    \n    if (staff.wellbeingAndSupport.shiftDifficultyRatings.filter(r => r.toLowerCase().includes('good') || r.toLowerCase().includes('excellent')).length > staff.wellbeingAndSupport.shiftDifficultyRatings.length / 2) {\n        strengths.push('Consistent positive shift performance and attitude');\n    }\n    \n    if (strengths.length === 2) {\n        strengths.push('Maintains professional healthcare standards in all client interactions');\n        strengths.push('Demonstrates reliability and commitment to quality care delivery');\n    }\n    \n    return strengths;\n}\n\nfunction generateDevelopmentRecommendations(staff) {\n    const recommendations = [];\n    \n    if (staff.professionalDevelopment.trainingNeeds.length > 0) {\n        recommendations.push('Prioritize completion of identified training modules within 30 days');\n        recommendations.push('Schedule one-on-one mentoring sessions with senior staff members');\n        recommendations.push('Document training progress and apply new skills in practice');\n    } else {\n        recommendations.push('Continue with regular professional development activities');\n        recommendations.push('Consider pursuing advanced certification in areas of interest');\n    }\n    \n    if (staff.wellbeingAndSupport.concernsRaised.length > 0) {\n        recommendations.push('Schedule follow-up meeting with supervisor to address reported concerns');\n        recommendations.push('Implement additional support mechanisms for challenging situations');\n        recommendations.push('Develop personalized stress management and coping strategies');\n    }\n    \n    if (staff.clientsWorkedWith.length > 5) {\n        recommendations.push('Monitor workload distribution to prevent burnout and maintain quality');\n        recommendations.push('Ensure adequate rest periods between intensive shift schedules');\n    }\n    \n    if (staff.totalShifts > 6) {\n        recommendations.push('Assess work-life balance and implement wellbeing check-ins');\n    }\n    \n    recommendations.push('Participate actively in team meetings and case discussions');\n    recommendations.push('Share knowledge and mentor junior staff members when appropriate');\n    recommendations.push('Set specific professional goals for the next reporting period');\n    \n    return recommendations;\n}\n\nfunction analyzeShiftPerformance(shiftRatings) {\n    const ratings = {\n        'excellent': 0,\n        'very good': 0,\n        'good': 0,\n        'challenging': 0,\n        'difficult': 0,\n        'very difficult': 0\n    };\n    \n    shiftRatings.forEach(rating => {\n        const lowerRating = rating.toLowerCase();\n        if (lowerRating.includes('excellent')) ratings['excellent']++;\n        else if (lowerRating.includes('very good')) ratings['very good']++;\n        else if (lowerRating.includes('good')) ratings['good']++;\n        else if (lowerRating.includes('challenging')) ratings['challenging']++;\n        else if (lowerRating.includes('very difficult')) ratings['very difficult']++;\n        else if (lowerRating.includes('difficult')) ratings['difficult']++;\n    });\n    \n    const total = shiftRatings.length;\n    const positiveShifts = ratings['excellent'] + ratings['very good'] + ratings['good'];\n    const challengingShifts = ratings['difficult'] + ratings['very difficult'] + ratings['challenging'];\n    \n    let analysis = `${total} shifts completed this week. `;\n    analysis += `${positiveShifts} shifts (${Math.round((positiveShifts/total)*100)}%) rated as good or better. `;\n    \n    if (challengingShifts > 0) {\n        analysis += `${challengingShifts} shifts presented challenges requiring additional support and follow-up.`;\n    } else {\n        analysis += 'No significant difficulties reported - consistent professional performance maintained.';\n    }\n    \n    return analysis;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        688
+      ],
+      "id": "996f57d2-fdb4-44b3-98cd-266a8e5a43ef",
+      "name": "Weekly Staff Report Generator",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Roster Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Splitter": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Client PDF": {
+      "main": [
+        [
+          {
+            "node": "Client Folder Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Staff PDF": {
+      "main": [
+        [
+          {
+            "node": "Staff Folder Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Folder Router": {
+      "main": [
+        [
+          {
+            "node": "Save Client Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Staff Folder Router": {
+      "main": [
+        [
+          {
+            "node": "Save Staff Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Client Report": {
+      "main": [
+        [
+          {
+            "node": "Log Client Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Staff Report": {
+      "main": [
+        [
+          {
+            "node": "Log Staff Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger4": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Data Processor": {
+      "main": [
+        [
+          {
+            "node": "Daily Task Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Task Generator": {
+      "main": [
+        [
+          {
+            "node": "Daily Task Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Task Generator": {
+      "main": [
+        [
+          {
+            "node": "Store Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Robust Weekly Data Processor": {
+      "main": [
+        [
+          {
+            "node": "Report Splitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NameCodeManager": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Daily Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "NameCodeManager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Client Report": {
+      "main": [
+        [
+          {
+            "node": "Log Weekly Client Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Staff Report": {
+      "main": [
+        [
+          {
+            "node": "Log Weekly Staff Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Roster Sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Robust Weekly Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Weekly Client Report Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weekly Staff Report Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weekly Task Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Client Report Generator": {
+      "main": [
+        [
+          {
+            "node": "Generate Client PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Staff Report Generator": {
+      "main": [
+        [
+          {
+            "node": "Generate Staff PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6a8a2c08-5e22-4a8a-81f1-039c53fa373a",
+  "meta": {
+    "instanceId": "5044d66d9273533da3f1ecb80ddf5c8ea534ffba5263f12766b626844c571974"
+  },
+  "id": "plEjbIVeKvAE1nDY",
+  "tags": []
+}
