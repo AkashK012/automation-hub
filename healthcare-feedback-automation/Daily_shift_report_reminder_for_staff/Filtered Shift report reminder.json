@@ -1,0 +1,810 @@
+{
+  "name": "Shift report reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "d68c61a3-461e-4b4d-81d3-8ada04e01ad6",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        2672,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "7209b804-bf74-4a36-a4b7-dc59c1da6c5e",
+      "name": "Read Roster Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2960,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "c0ba89de-2776-40af-84bd-ab1ec2195fec",
+      "name": "Read Form Submissions",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2960,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Reminder_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "week_id": "={{ $json.week_id }}",
+            "shift_date": "={{ $json.shift_date }}",
+            "support_staff": "={{ $json.support_staff }}",
+            "start_time": "={{ $json.start_time }}",
+            "end_time": "={{ $json.end_time }}",
+            "client": "={{ $json.client }}",
+            "house": "={{ $json.house }}",
+            "reminder_phase": "={{ $json.reminder_phase }}",
+            "check_timestamp": "={{ $json.check_timestamp }}",
+            "mobile_number": "={{ $json.mobile_number }}",
+            "is_submitted": "={{ $json.is_submitted }}",
+            "minutes_since_end": "={{ $json.minutes_since_end }}",
+            "reminder_sent_at": "={{ $now.toISO() }}",
+            "reminder_method": "={{ $json.reminder_phase === 'voice_call' ? 'Voice Call' : $json.reminder_phase === 'manager_escalation' ? 'Email' : 'SMS' }}",
+            "delivery_status": "Sent",
+            "execution_id": "={{ $json.execution_id }}",
+            "workflow_id": "={{ $json.workflow_id }}",
+            "shift_hash": "={{ $json.shift_hash }}",
+            "phase_slot": "={{ $json.phase_slot }}",
+            "daily_lock": "={{ $json.support_staff }}_{{ $json.shift_date }}_{{ $json.reminder_phase }}_{{ $now.toFormat('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "shift_date",
+              "displayName": "shift_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "support_staff",
+              "displayName": "support_staff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "start_time",
+              "displayName": "start_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "end_time",
+              "displayName": "end_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client",
+              "displayName": "client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "house",
+              "displayName": "house",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminder_phase",
+              "displayName": "reminder_phase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "check_timestamp",
+              "displayName": "check_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "mobile_number",
+              "displayName": "mobile_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_submitted",
+              "displayName": "is_submitted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "minutes_since_end",
+              "displayName": "minutes_since_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminder_sent_at",
+              "displayName": "reminder_sent_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminder_method",
+              "displayName": "reminder_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "workflow_id",
+              "displayName": "workflow_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "shift_hash",
+              "displayName": "shift_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phase_slot",
+              "displayName": "phase_slot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "daily_lock",
+              "displayName": "daily_lock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_status",
+              "displayName": "delivery_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d1381968-4406-4502-a2f1-80c4b1552998",
+      "name": "Log Reminder Activity",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        5264,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "akash.kunwar@younglogix.com.au",
+        "subject": "= URGENT: Missing Shift Report - {{ $json.support_staff }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px;\">     <h2 style=\"color: #d32f2f; margin-top: 0;\">🚨 STAFF NON-COMPLIANCE ALERT</h2>          <div style=\"background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 20px 0; border-radius: 5px;\">         <h3 style=\"color: #856404; margin-top: 0;\">Shift Report Overdue - Action Required</h3>         <p><strong>Staff Member:</strong> {{ $json.support_staff }}</p>         <p><strong>Shift Location:</strong> {{ $json.client }} - {{ $json.house }}</p>         <p><strong>Shift Date:</strong> {{ $json.shift_date }}</p>         <p><strong>Shift Time:</strong> {{ $json.start_time }} - {{ $json.end_time }}</p>         <p><strong>Hours Overdue:</strong> {{ Math.floor($json.minutes_since_end / 60) }} hours</p>     </div>          <h3 style=\"color: #495057;\">Previous Actions Taken:</h3>     <ul style=\"color: #6c757d;\">         <li>✅ First SMS reminder sent (30 minutes after shift)</li>         <li>✅ Urgent SMS reminder sent (1 hour after shift)</li>         <li>✅ Voice call reminder attempted (3 hours after shift)</li>         <li>❌ No response received from staff member</li>     </ul>          <div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; margin: 20px 0; border-radius: 5px;\">         <h4 style=\"color: #721c24; margin-top: 0;\">Manager Action Required:</h4>         <p style=\"color: #721c24;\">Please contact {{ $json.support_staff }} directly to:</p>         <ol style=\"color: #721c24;\">             <li>Ensure shift completion and client safety</li>             <li>Obtain missing shift report</li>             <li>Address compliance issues</li>         </ol>     </div>          <p style=\"margin: 20px 0;\">         <strong>Staff Contact:</strong> {{ $json.mobile_number }}<br>         <strong>Week ID:</strong> {{ $json.week_id }}<br>         <strong>Alert Generated:</strong> {{ $now.toFormat('dd/MM/yyyy HH:mm') }}     </p>          <hr style=\"margin: 20px 0;\">     <p style=\"font-size: 12px; color: #666;\">         This is an automated alert from the Shift Management System.<br>         For urgent issues, contact the on-call supervisor immediately.     </p> </div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4992,
+        1552
+      ],
+      "id": "dd6b653c-b884-4675-9f84-3e3474a89985",
+      "name": "Send a message",
+      "webhookId": "faf6cf7c-0efe-4659-af78-5ffaeb9d5017",
+      "retryOnFail": true,
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "to": "={{ $json.mobile_number }}",
+        "message": "=Hi {{ $json.support_staff }}! Friendly reminder: Please submit your shift report for {{ $json.client }} at {{ $json.house }} on {{ $json.shift_date }} ({{ $json.start_time }} - {{ $json.end_time }}). Form:https://docs.google.com/forms/d/e/1FAIpQLScG4dJ3SKQLB_u0miXTSkWysAbJmls4is1gDbKG1GrQ3dy-vA/viewform?usp=header",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        4992,
+        912
+      ],
+      "id": "96fee9a0-946e-4796-8280-aef72aa30071",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "to": "={{ $json.mobile_number }}",
+        "message": "=URGENT: {{ $json.support_staff }}, submit shift report for {{ $json.shift_date }} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        4992,
+        1088
+      ],
+      "id": "f768d580-4112-476c-b77b-b1a6a5c2c87e",
+      "name": "Send an SMS/MMS/WhatsApp message1",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "call",
+        "to": "={{ $json.mobile_number }}",
+        "twiml": true,
+        "message": "<Response><Say voice=\"alice\">Hello. This is an urgent reminder regarding your shift report. Your shift report is overdue and requires immediate attention. Please submit your report online within the next hour to avoid further escalation. Thank you.</Say></Response>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        4992,
+        1280
+      ],
+      "id": "22333593-bafc-4171-8600-09f61900e141",
+      "name": "Make a call",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Production-ready filter with SYDNEY TIMEZONE fix\n// Optimize data structure - remove unnecessary fields\nconst inputItems = $input.all().map(item => ({\n  json: {\n    'Support Staff': item.json['Support Staff'],\n    'Date': item.json['Date'], \n    'Start Time': item.json['Start Time'],\n    'End Time': item.json['End Time'],\n    'Client': item.json['Client'],\n    'House': item.json['House'],\n    'Mobile Number': item.json['Mobile Number']\n  }\n}));\nconst filteredShifts = [];\n\n\n// FORCE SYDNEY TIMEZONE\nconst now = DateTime.now().setZone('Australia/Sydney');\n\nconsole.log(`CURRENT TIME (SYDNEY): ${now.toFormat('yyyy-MM-dd HH:mm:ss')}`);\nconsole.log(`Processing ${inputItems.length} roster items`);\nconsole.log(`FILTER CRITERIA: 30 min <= time since end <= 1440 min (24 hours)`);\n\nfor (const item of inputItems) {\n  try {\n    const shift = item.json;\n    const dateStr = shift.Date;\n    const endTimeStr = shift['End Time'];\n    const staffName = shift['Support Staff'];\n    \n    console.log(`\\n=== ${staffName} ===`);\n    console.log(`Shift: ${dateStr} ending at ${endTimeStr}`);\n    \n    if (!dateStr || !endTimeStr || !staffName) {\n      console.log(`REJECTED: Missing data`);\n      continue;\n    }\n    \n    let shiftEndDateTime;\n    \n    // Handle different date formats\n    if (dateStr.includes('-') && dateStr.length >= 8) {\n      // Format: \"2025-09-18\" or \"2024-09-18\"\n      shiftEndDateTime = parseStandardDate(dateStr, endTimeStr);\n    } else {\n      // Format: \"28 Aug 25\" or \"18 Sep 25\"\n      shiftEndDateTime = parseShortDate(dateStr, endTimeStr);\n    }\n    \n    if (!shiftEndDateTime || !shiftEndDateTime.isValid) {\n      console.log(`REJECTED: Invalid date format`);\n      continue;\n    }\n    \n    // FORCE SYDNEY TIMEZONE for shift end time\n    shiftEndDateTime = shiftEndDateTime.setZone('Australia/Sydney');\n    \n    console.log(`Parsed shift end (SYDNEY): ${shiftEndDateTime.toFormat('yyyy-MM-dd HH:mm:ss')}`);\n    \n    // Calculate minutes since shift ended using Sydney time\n    const minutesSinceEnd = now.diff(shiftEndDateTime, 'minutes').minutes;\n    const hoursSinceEnd = minutesSinceEnd / 60;\n    \n    console.log(`Time difference: ${Math.floor(minutesSinceEnd)} minutes (${hoursSinceEnd.toFixed(1)} hours)`);\n    \n    // Detailed analysis\n    if (minutesSinceEnd < 0) {\n      console.log(`REJECTED: Shift hasn't ended yet (${Math.abs(Math.floor(minutesSinceEnd))} min in future)`);\n    } else if (minutesSinceEnd < 30) {\n      console.log(`REJECTED: Too recent (need to wait ${30 - Math.floor(minutesSinceEnd)} more minutes)`);\n    } else if (minutesSinceEnd > 1440) {\n      console.log(`REJECTED: Too old (${Math.floor(hoursSinceEnd)} hours ago, limit is 24 hours)`);\n    } else {\n      console.log(`ACCEPTED: Perfect timing (${Math.floor(minutesSinceEnd)} min ago)`);\n      filteredShifts.push(item);\n    }\n    \n  } catch (error) {\n    console.log(`ERROR: ${error.message}`);\n  }\n}\n\nconsole.log(`\\n=== FILTER RESULTS ===`);\nconsole.log(`Input: ${inputItems.length} shifts`);\nconsole.log(`Output: ${filteredShifts.length} shifts need reminders`);\n\nif (filteredShifts.length === 0) {\n  console.log(`\\nWHY NO RESULTS?`);\n  console.log(`- Check if any shifts actually ended 30 min - 24 hours ago`);\n  console.log(`- Current time (Sydney): ${now.toFormat('HH:mm')}`);\n  console.log(`- Most shifts are probably either too recent or too old`);\n}\n\nreturn filteredShifts;\n\n// ENHANCED STANDARD DATE PARSER with Sydney timezone\nfunction parseStandardDate(dateStr, timeStr) {\n  try {\n    const cleanTime = normalizeTimeString(timeStr);\n    if (!cleanTime) return null;\n    \n    // Parse in Sydney timezone\n    return DateTime.fromFormat(`${dateStr} ${cleanTime}`, 'yyyy-MM-dd HH:mm', {\n      zone: 'Australia/Sydney'\n    });\n  } catch (error) {\n    console.log(`Standard date parsing error: ${error.message}`);\n    return null;\n  }\n}\n\n// ENHANCED SHORT DATE PARSER with Sydney timezone\nfunction parseShortDate(dateStr, timeStr) {\n  try {\n    const parts = dateStr.split(' ');\n    if (parts.length !== 3) return null;\n    \n    const day = parts[0].padStart(2, '0');\n    const month = parts[1];\n    const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];\n    \n    const monthMap = {\n      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',\n      'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',\n      'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'\n    };\n    \n    if (!monthMap[month]) {\n      console.log(`Unknown month: ${month}`);\n      return null;\n    }\n    \n    const formattedDate = `${year}-${monthMap[month]}-${day}`;\n    const cleanTime = normalizeTimeString(timeStr);\n    \n    if (!cleanTime) return null;\n    \n    // Parse in Sydney timezone\n    return DateTime.fromFormat(`${formattedDate} ${cleanTime}`, 'yyyy-MM-dd HH:mm', {\n      zone: 'Australia/Sydney'\n    });\n  } catch (error) {\n    console.log(`Short date parsing error: ${error.message}`);\n    return null;\n  }\n}\n\n// ROBUST TIME STRING NORMALIZER - Handles ALL formats\nfunction normalizeTimeString(timeStr) {\n  if (!timeStr) return null;\n  \n  try {\n    let cleanTime = timeStr.toString().trim().toLowerCase();\n    cleanTime = cleanTime.replace(/\\s+/g, ' ');\n    \n    console.log(`  Normalizing time: \"${timeStr}\" -> \"${cleanTime}\"`);\n    \n    // Handle 12-hour format\n    if (cleanTime.includes('am') || cleanTime.includes('pm')) {\n      // Handle times without minutes: \"1 pm\", \"8 am\" -> \"1:00 pm\", \"8:00 am\"\n      if (cleanTime.match(/^\\d{1,2}\\s*(am|pm)$/)) {\n        const parts = cleanTime.split(/\\s+/);\n        const hour = parts[0];\n        const period = parts[1];\n        cleanTime = `${hour}:00 ${period}`;\n        console.log(`  Added missing minutes: \"${cleanTime}\"`);\n      }\n      \n      // Handle times with minutes: \"1:30 pm\", \"8:45 am\"\n      const timeMatch = cleanTime.match(/^(\\d{1,2}):?(\\d{0,2})\\s*(am|pm)$/);\n      if (timeMatch) {\n        let hours = parseInt(timeMatch[1]);\n        let minutes = timeMatch[2] || '00';\n        const period = timeMatch[3];\n        \n        minutes = minutes.padStart(2, '0');\n        \n        // Convert to 24-hour format\n        if (period === 'pm' && hours !== 12) {\n          hours += 12;\n        } else if (period === 'am' && hours === 12) {\n          hours = 0;\n        }\n        \n        const result = `${hours.toString().padStart(2, '0')}:${minutes}`;\n        console.log(`  Converted 12h->24h: \"${result}\"`);\n        return result;\n      }\n    }\n    \n    // Handle 24-hour format: \"14:30\", \"09:00\"\n    const time24Match = cleanTime.match(/^(\\d{1,2}):(\\d{2})$/);\n    if (time24Match) {\n      const hours = parseInt(time24Match[1]).toString().padStart(2, '0');\n      const minutes = time24Match[2];\n      const result = `${hours}:${minutes}`;\n      console.log(`  Normalized 24h: \"${result}\"`);\n      return result;\n    }\n    \n    // Handle hour-only 24-hour format: \"14\", \"09\"\n    const hourOnlyMatch = cleanTime.match(/^\\d{1,2}$/);\n    if (hourOnlyMatch) {\n      const hours = parseInt(cleanTime).toString().padStart(2, '0');\n      const result = `${hours}:00`;\n      console.log(`  Added minutes to 24h: \"${result}\"`);\n      return result;\n    }\n    \n    console.log(`  Unrecognized time format: \"${timeStr}\"`);\n    return null;\n    \n  } catch (error) {\n    console.log(`  Time normalization error for \"${timeStr}\": ${error.message}`);\n    return null;\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3776,
+        1248
+      ],
+      "id": "70b3ad55-2d48-4077-bf8b-ad3c7f2cbffd",
+      "name": "Filter Recently Ended Shifts1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "35898336-185e-49f3-bba0-1abfafd40876",
+      "name": "Read Reminder Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2960,
+        1216
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ACTUALLY WORKING DUPLICATE PREVENTION\n// This ACTUALLY checks previous reminders and blocks duplicates\n\nconst inputData = $input.all();\nlet rosterData = [];\nlet formSubmissions = [];\nlet reminderLog = [];\n\n// Separate the three data sources\ninputData.forEach(item => {\n  const data = item.json;\n  \n  // Roster data\n  if (data && data['Support Staff'] && data['Start Time'] && data['End Time']) {\n    rosterData.push(item);\n  } \n  // Form submissions  \n  else if (data && (data['Staff Full Name'] || data['Sign In Date & Time'])) {\n    formSubmissions.push(data);\n  }\n  // Reminder log entries\n  else if (data && (data.reminder_sent_at || data.reminder_phase || data.support_staff)) {\n    reminderLog.push(data);\n  }\n});\n\nconsole.log(`📊 DATA RECEIVED:`);\nconsole.log(`Roster: ${rosterData.length} items`);\nconsole.log(`Form submissions: ${formSubmissions.length} items`);\nconsole.log(`Reminder log: ${reminderLog.length} items`);\n\nconst processedShifts = [];\nconst now = DateTime.now().setZone('Australia/Sydney');\n\n// Execution tracking\nconst executionId = $execution.id;\nconst workflowId = $workflow.id;\nconst thisExecutionTime = now.toISO();\n\nconsole.log(`🔄 Execution: ${executionId} at ${thisExecutionTime}`);\n\n// Reminder timeline\nconst REMINDER_TIMELINE = {\n  first_reminder: 30,\n  urgent_reminder: 60,\n  voice_call: 180,\n  manager_escalation: 1440\n};\n\n// DUPLICATE PREVENTION: Check against actual reminder log\nfunction wasReminderAlreadySent(staffName, shiftDate, startTime, reminderPhase) {\n  const duplicateWindow = 4 * 60; // 4 hours in minutes\n  const cutoffTime = now.minus({ minutes: duplicateWindow });\n  \n  console.log(`🔍 Checking for duplicates: ${staffName} | ${reminderPhase} | ${shiftDate}`);\n  \n  const duplicates = reminderLog.filter(log => {\n    // Match staff name\n    if (!log.support_staff) return false;\n    const logStaff = normalizeStaffName(log.support_staff);\n    const currentStaff = normalizeStaffName(staffName);\n    const staffMatch = logStaff === currentStaff;\n    \n    if (!staffMatch) return false;\n    \n    // Match shift date\n    if (log.shift_date !== shiftDate) return false;\n    \n    // Match start time\n    if (log.start_time !== startTime) return false;\n    \n    // Match reminder phase\n    if (log.reminder_phase !== reminderPhase) return false;\n    \n    // Check timing - was it sent recently?\n    const logTimeStr = log.reminder_sent_at || log.check_timestamp;\n    if (!logTimeStr) return false;\n    \n    let logTime = DateTime.fromISO(logTimeStr);\n    if (!logTime.isValid) {\n      logTime = DateTime.fromSQL(logTimeStr);\n    }\n    if (!logTime.isValid) {\n      logTime = DateTime.fromFormat(logTimeStr, 'yyyy-MM-dd HH:mm:ss');\n    }\n    \n    if (logTime.isValid) {\n      const isRecent = logTime > cutoffTime;\n      if (isRecent) {\n        const minutesAgo = Math.floor(now.diff(logTime, 'minutes').minutes);\n        console.log(`   🛑 DUPLICATE FOUND: ${reminderPhase} sent ${minutesAgo} minutes ago`);\n        return true;\n      }\n    }\n    \n    return false;\n  });\n  \n  return duplicates.length > 0;\n}\n\n// Track processed in this execution\nconst processedInThisRun = new Set();\n\n// Process each roster item\nfor (const rosterItem of rosterData) {\n  try {\n    const shift = rosterItem.json || rosterItem;\n    \n    if (!shift['Support Staff'] || !shift.Date || !shift['Start Time'] || !shift['End Time']) {\n      continue;\n    }\n    \n    const staffName = shift['Support Staff'];\n    const shiftDate = shift.Date;\n    const startTime = shift['Start Time'];\n    const endTime = shift['End Time'];\n    \n    console.log(`\\n=== ${staffName} | ${shiftDate} ${startTime}-${endTime} ===`);\n    \n    // Check if form was submitted\n    const hasSubmission = formSubmissions.some(submission => {\n      const submissionStaff = normalizeStaffName(submission['Staff Full Name'] || '');\n      const shiftStaff = normalizeStaffName(staffName);\n      const staffMatch = submissionStaff === shiftStaff || \n                        submissionStaff.includes(shiftStaff) || \n                        shiftStaff.includes(submissionStaff);\n      \n      if (!staffMatch) return false;\n      \n      const submissionDate = (submission['Sign In Date & Time'] || '').toString().split(' ')[0];\n      return submissionDate === shiftDate;\n    });\n    \n    if (hasSubmission) {\n      console.log(`✅ Form submitted - SKIPPING`);\n      continue;\n    }\n    \n    // Calculate timing\n    const shiftEndDateTime = parseShiftDateTime(shiftDate, endTime);\n    if (!shiftEndDateTime) {\n      console.log(`❌ Invalid date/time format`);\n      continue;\n    }\n    \n    const minutesSinceEnd = Math.abs(shiftEndDateTime.diffNow('minutes').minutes);\n    \n    // Check if within reminder window\n    if (minutesSinceEnd < 30) {\n      console.log(`⏳ Too recent (${Math.floor(minutesSinceEnd)} min)`);\n      continue;\n    }\n    \n    if (minutesSinceEnd > 1440) {\n      console.log(`🕒 Too old (${Math.floor(minutesSinceEnd / 60)} hours)`);\n      continue;\n    }\n    \n    // Determine reminder phase\n    let reminderPhase;\n    if (minutesSinceEnd >= REMINDER_TIMELINE.manager_escalation) {\n      reminderPhase = 'manager_escalation';\n    } else if (minutesSinceEnd >= REMINDER_TIMELINE.voice_call) {\n      reminderPhase = 'voice_call';\n    } else if (minutesSinceEnd >= REMINDER_TIMELINE.urgent_reminder) {\n      reminderPhase = 'urgent_reminder';\n    } else if (minutesSinceEnd >= REMINDER_TIMELINE.first_reminder) {\n      reminderPhase = 'first_reminder';\n    }\n    \n    if (!reminderPhase) continue;\n    \n    console.log(`🎯 Required phase: ${reminderPhase} (${Math.floor(minutesSinceEnd)} min since end)`);\n    \n    // ACTUAL DUPLICATE CHECK\n    const shiftKey = `${staffName}_${shiftDate}_${startTime}`;\n    const reminderKey = `${shiftKey}_${reminderPhase}`;\n    \n    // 1. Check this execution\n    if (processedInThisRun.has(reminderKey)) {\n      console.log(`🚫 BLOCKED: Already processed in this execution`);\n      continue;\n    }\n    \n    // 2. CHECK ACTUAL REMINDER LOG FOR DUPLICATES\n    if (wasReminderAlreadySent(staffName, shiftDate, startTime, reminderPhase)) {\n      console.log(`🚫 BLOCKED: Duplicate reminder found in log`);\n      continue;\n    }\n    \n    // 3. All checks passed - allow reminder\n    processedInThisRun.add(reminderKey);\n    \n    console.log(`✅ ALLOWED: ${reminderPhase} for ${staffName}`);\n    \n    // Create processed shift\n    const processedShift = {\n      week_id: shiftKey.replace(/[^\\w-]/g, '_'),\n      shift_date: shiftDate,\n      support_staff: staffName,\n      start_time: startTime,\n      end_time: endTime,\n      client: shift.Client || 'Unknown Client',\n      house: shift.House || 'Unknown House',\n      reminder_phase: reminderPhase,\n      check_timestamp: thisExecutionTime,\n      mobile_number: standardizePhoneNumber(shift['Mobile Number']) || 'NO_MOBILE',\n      is_submitted: false,\n      minutes_since_end: Math.floor(minutesSinceEnd),\n      // Metadata\n      execution_id: executionId,\n      workflow_id: workflowId,\n      execution_time: thisExecutionTime,\n      shift_hash: generateSimpleHash(`${shiftKey}_${reminderPhase}`),\n      phase_slot: now.hour,\n      time_slot: Math.floor(now.toMillis() / (15 * 60 * 1000)),\n      phase_level: ['first_reminder', 'urgent_reminder', 'voice_call', 'manager_escalation'].indexOf(reminderPhase)\n    };\n    \n    processedShifts.push(processedShift);\n    \n  } catch (error) {\n    console.log(`❌ Error: ${error.message}`);\n  }\n}\n\nconsole.log(`\\n🎯 FINAL RESULT: ${processedShifts.length} reminders to send (duplicates blocked)`);\nconsole.log(`📝 Reminder log had ${reminderLog.length} previous entries to check against`);\n\nreturn processedShifts;\n\n// Helper functions\nfunction generateSimpleHash(input) {\n  const str = input.toLowerCase().replace(/[^\\w]/g, '');\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    const char = str.charCodeAt(i);\n    hash = ((hash << 5) - hash) + char;\n    hash = hash & hash;\n  }\n  return Math.abs(hash).toString(36).substring(0, 6);\n}\n\nfunction normalizeStaffName(name) {\n  if (!name) return '';\n  return name.toString().trim().toLowerCase()\n    .replace(/[^\\w\\s]/g, '').replace(/\\s+/g, ' ');\n}\n\nfunction parseShiftDateTime(dateStr, timeStr) {\n  try {\n    let cleanTime = timeStr.toString().trim().toLowerCase().replace(/\\s+/g, ' ');\n    let hours24, minutes24;\n    \n    if (cleanTime.includes('am') || cleanTime.includes('pm')) {\n      const match = cleanTime.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)$/);\n      if (match) {\n        hours24 = parseInt(match[1]);\n        minutes24 = match[2] ? parseInt(match[2]) : 0;\n        if (match[3] === 'pm' && hours24 !== 12) hours24 += 12;\n        else if (match[3] === 'am' && hours24 === 12) hours24 = 0;\n      }\n    } else {\n      const match = cleanTime.match(/^(\\d{1,2}):?(\\d{2})?$/);\n      if (match) {\n        hours24 = parseInt(match[1]);\n        minutes24 = match[2] ? parseInt(match[2]) : 0;\n      }\n    }\n    \n    if (hours24 === undefined) return null;\n    \n    const timeStr24 = `${hours24.toString().padStart(2, '0')}:${minutes24.toString().padStart(2, '0')}`;\n    \n    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(dateStr)) {\n      return DateTime.fromFormat(`${dateStr} ${timeStr24}`, 'yyyy-MM-dd HH:mm', { zone: 'Australia/Sydney' });\n    } else {\n      const match = dateStr.match(/^(\\d{1,2})\\s+(\\w{3})\\s+(\\d{2})$/);\n      if (match) {\n        const monthMap = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };\n        const standardDate = `20${match[3]}-${monthMap[match[2]]}-${match[1].padStart(2, '0')}`;\n        return DateTime.fromFormat(`${standardDate} ${timeStr24}`, 'yyyy-MM-dd HH:mm', { zone: 'Australia/Sydney' });\n      }\n    }\n    return null;\n  } catch (error) {\n    return null;\n  }\n}\n\nfunction standardizePhoneNumber(rawNumber) {\n  if (!rawNumber || rawNumber === '' || rawNumber === 'null' || rawNumber === 'undefined') {\n    return '';\n  }\n  \n  let clean = rawNumber.toString().trim().replace(/[^\\d+]/g, '');\n  \n  if (clean === '') return '';\n  \n  // Already in international format\n  if (clean.startsWith('+')) {\n    return clean.match(/^\\+\\d{7,15}$/) ? clean : '';\n  }\n  \n  // Australian formats\n  if (clean.startsWith('04') && clean.length === 10) {\n    return `+61${clean.substring(1)}`;\n  }\n  \n  if (clean.startsWith('4') && clean.length === 9) {\n    return `+61${clean}`;\n  }\n  \n  if (clean.startsWith('614') && clean.length === 11) {\n    return `+${clean}`;\n  }\n  \n  return '';\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4048,
+        1248
+      ],
+      "id": "5c22410f-570e-4ba0-8cb6-290ffbfa249a",
+      "name": "new check submission status"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "dd3a7b36-c3bd-4f15-bada-b26ba22325f9",
+                    "leftValue": "={{ $json.reminder_phase }}",
+                    "rightValue": "first_reminder",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6bdc4f2c-d034-4108-a880-e9c5924e9c5f",
+                    "leftValue": "={{ $json.reminder_phase }}",
+                    "rightValue": "urgent_reminder",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a198ac67-5407-482d-a0ea-3027930e2195",
+                    "leftValue": "={{ $json.reminder_phase }}",
+                    "rightValue": "voice_call",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a020f307-ab64-4c79-89df-293c68d055ae",
+                    "leftValue": "={{ $json.reminder_phase }}",
+                    "rightValue": "manager_escalation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4384,
+        1216
+      ],
+      "id": "a7893c17-7a4c-4d5d-b45d-24aa7fa2a60b",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3344,
+        1232
+      ],
+      "id": "050d3e85-eba6-453f-98f9-d7a0808f345f",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger & Input\n\n",
+        "height": 704,
+        "width": 976
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        928
+      ],
+      "id": "56cfc9d5-d0e5-48d5-8dd3-b9a3a0eb4551",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "content": "## Filtering new submissions",
+        "height": 336,
+        "width": 880,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3664,
+        1136
+      ],
+      "id": "dfabc9f7-a096-4cdc-9e62-1d44e0604069",
+      "name": "Sticky Note19"
+    },
+    {
+      "parameters": {
+        "content": "## Delivery & Logging",
+        "height": 960,
+        "width": 640,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4848,
+        832
+      ],
+      "id": "2e6ded73-7a15-4e23-9435-1011f09fdcde",
+      "name": "Sticky Note20"
+    },
+    {
+      "parameters": {
+        "content": "# Shift Report Reminder",
+        "height": 1104,
+        "width": 3120,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        768
+      ],
+      "id": "e090bd3b-5137-4cd8-8427-590733e0dd9f",
+      "name": "Sticky Note21"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Form Submissions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Roster Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Reminder Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Roster Sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Form Submissions": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Send an SMS/MMS/WhatsApp message": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an SMS/MMS/WhatsApp message1": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make a call": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Recently Ended Shifts1": {
+      "main": [
+        [
+          {
+            "node": "new check submission status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Reminder Log": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "new check submission status": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Make a call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Reminder Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Filter Recently Ended Shifts1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "db2519a1-bff8-4f93-a29c-e0ff1f37c87a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5044d66d9273533da3f1ecb80ddf5c8ea534ffba5263f12766b626844c571974"
+  },
+  "id": "RQCnOeAdPbFLw8Pl",
+  "tags": []
+}
