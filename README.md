@@ -6,7 +6,7 @@ Professional automation workflows built using n8n, APIs, and integration platfor
 
 ## 🚀 Live Demo
 
-**[Daily Status Bot - Interactive Demo](https://akashk012.github.io/automation-hub/)**
+**[Daily Status Bot - Interactive Demo](https://akashk012.github.io/automation-hub/Live_demo/index.html)**
 
 Try the live automation demo to see real-time workflow execution.
 
