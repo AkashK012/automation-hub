@@ -20,7 +20,8 @@ Automated daily shift report generation with incident logging and multi-recipien
 
 **Impact:** 15+ hours/week saved, 100% on-time delivery
 
-[View Project →](./daily-shift-incident-report)
+[View Project →](./Daily%20Shift%20%26%20Incident%20Report%20Generator)
+
 
 ---
 
@@ -35,7 +36,7 @@ Automated reminder system tracking pending shift reports with delivery confirmat
 
 **Impact:** 60% reduction in late reports, 100% reminder delivery rate
 
-[View Project →](./shift-report-reminder)
+[View Project →](./Daily_shift_report_reminder_for_staff)
 
 ---
 
@@ -50,7 +51,7 @@ Weekly summary report generation with task assignment and multi-department distr
 
 **Impact:** 6+ hours/week saved, 3 departments automated
 
-[View Project →](./weekly-report-task-generator)
+[View Project →](./Weekly_report%2C%20Task_Generator%20%26%20Logger)
 
 ---
 
@@ -103,7 +104,6 @@ Automation Engineer | Building tools that save time
 
 
 **Structure:**
-```
 healthcare-automation-workflows/
 ├── README.md (THIS FILE - overview of all 3 projects)
 ├── daily-shift-incident-report/
