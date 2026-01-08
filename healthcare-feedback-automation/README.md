@@ -103,7 +103,8 @@ Automation Engineer | Building tools that save time
 ```
 
 
-**Structure:**
+Structure:
+
 healthcare-automation-workflows/
 ├── README.md (THIS FILE - overview of all 3 projects)
 ├── daily-shift-incident-report/
